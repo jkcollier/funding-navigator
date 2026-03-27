@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+.env
+.venv/
+staticfiles/
+media/
+D:\devel\nonprofit\test2>
+pgdata/

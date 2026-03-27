@@ -1,0 +1,23 @@
+{% extends "fonds/base.html" %}
+
+{% block title %}Edit organization · Fonds Databank{% endblock %}
+
+{% block content %}
+<h1>Edit organization</h1>
+<p><strong>{{ organization.name }}</strong> <span class="muted">({{ organization.org_id }})</span></p>
+
+<form method="post">
+    {% csrf_token %}
+
+    {% for field in form %}
+    <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div style="color:#b91c1c">{{ field.errors }}</div>{% endif %}
+    </div>
+    {% endfor %}
+
+    <button class="btn" type="submit">Save</button>
+    <a class="btn" href="/organizations/">Back</a>
+</form>
+{% endblock %}

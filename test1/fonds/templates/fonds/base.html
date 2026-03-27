@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Fonds Databank{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 1000px; line-height: 1.4; }
+        nav a { margin-right: 1rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { border: 1px solid #ddd; padding: 0.5rem; vertical-align: top; }
+        th { background: #f3f3f3; text-align: left; }
+        .muted { color: #666; }
+        .actions a { margin-right: .5rem; }
+        .success { background: #ecfdf3; border: 1px solid #86efac; padding: .6rem .8rem; }
+        form .field { margin: .8rem 0; }
+        form label { display:block; font-weight:600; margin-bottom:.25rem; }
+        input[type="text"], input[type="number"], textarea { width:100%; padding:.45rem; box-sizing:border-box; }
+        .btn { display:inline-block; padding:.45rem .8rem; border:1px solid #333; text-decoration:none; background:#fff; color:#111; cursor:pointer; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/organizations/">Organizations</a>
+        <a href="/targets/">Targets</a>
+        <a href="/api/organizations/">API</a>
+    </nav>
+    <hr>
+    {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,27 @@
+{% extends "fonds/base.html" %}
+
+{% block title %}Target detail · Fonds Databank{% endblock %}
+
+{% block content %}
+<h1>Target: {{ target_group.raw_label }}</h1>
+<p class="muted">ID: {{ target_group.target_group_id }}</p>
+
+{% if target_group.canonical_group %}
+<p>Canonical: <strong>{{ target_group.canonical_group }}</strong></p>
+{% endif %}
+
+<h2>Organizations</h2>
+<ul>
+    {% for org in organizations %}
+        <li>
+            {{ org.name }}
+            <a href="/organizations/{{ org.org_id }}/edit/">Edit</a>
+            <a href="/api/organizations/{{ org.org_id }}/">JSON</a>
+        </li>
+    {% empty %}
+        <li>No organizations linked to this target.</li>
+    {% endfor %}
+</ul>
+
+<p><a href="/targets/">Back to targets</a></p>
+{% endblock %}
