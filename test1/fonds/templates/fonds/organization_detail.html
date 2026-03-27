@@ -1,0 +1,110 @@
+{% extends "fonds/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ organization.name }} · {% trans "Funding databank" %}{% endblock %}
+
+{% block content %}
+<h1>{{ organization.name }}</h1>
+<p class="muted">{{ organization.org_key }}</p>
+
+{% if LANGUAGE_CODE != 'de' %}
+<p class="muted">{% trans "Free-text organization content is currently shown in its original source language (German) unless an explicit translation exists." %}</p>
+{% endif %}
+
+<p class="actions">
+    <a class="btn" href="/organizations/{{ organization.org_key }}/edit/">{% trans "Edit" %}</a>
+    <a class="btn" href="/api/organizations/{{ organization.org_key }}/">JSON</a>
+    <a class="btn" href="/organizations/">{% trans "Back" %}</a>
+</p>
+
+<h2>{% trans "Summary" %}</h2>
+<table>
+    <tbody>
+        <tr><th>{% trans "City" %}</th><td>{{ organization.city|default:"-" }}</td></tr>
+        <tr><th>{% trans "Postal code" %}</th><td>{{ organization.postal_code|default:"-" }}</td></tr>
+        <tr><th>{% trans "Page start" %}</th><td>{{ organization.page_start|default:"-" }}</td></tr>
+        <tr><th>{% trans "Address" %}</th><td>{{ organization.address|default:"-"|linebreaksbr }}</td></tr>
+        <tr><th>{% trans "Contact" %}</th><td>{{ organization.contact_raw|default:"-"|linebreaksbr }}</td></tr>
+        <tr><th>{% trans "Websites" %}</th><td>{{ organization.websites_jsonb|join:", "|default:"-" }}</td></tr>
+        <tr><th>{% trans "Emails" %}</th><td>{{ organization.emails_jsonb|join:", "|default:"-" }}</td></tr>
+        <tr><th>{% trans "Phone numbers" %}</th><td>{{ organization.phone_numbers_jsonb|join:", "|default:"-" }}</td></tr>
+    </tbody>
+</table>
+
+<h2>{% trans "Target groups" %}</h2>
+<ul>
+    {% for link in organization.organization_target_groups.all %}
+    <li>
+        <a href="/targets/{{ link.target_group.slug }}/">{{ link.target_group.display_name }}</a>
+        {% if link.target_group.german_name != link.target_group.english_name %}
+        <span class="muted">
+            —
+            {% if LANGUAGE_CODE == 'de' %}
+            {{ link.target_group.english_name }}
+            {% else %}
+            {{ link.target_group.german_name }}
+            {% endif %}
+        </span>
+        {% endif %}
+    </li>
+    {% empty %}
+    <li>{% trans "No target groups assigned." %}</li>
+    {% endfor %}
+</ul>
+
+<h2>{% trans "Applicant types" %}</h2>
+<ul>
+    {% for link in organization.organization_applicant_types.all %}
+    <li>
+        {{ link.applicant_type.display_label }}
+        {% if link.applicant_type.german_label != link.applicant_type.english_label %}
+        <span class="muted">
+            —
+            {% if LANGUAGE_CODE == 'de' %}
+            {{ link.applicant_type.english_label }}
+            {% else %}
+            {{ link.applicant_type.german_label }}
+            {% endif %}
+        </span>
+        {% endif %}
+    </li>
+    {% empty %}
+    <li>{% trans "No applicant types assigned." %}</li>
+    {% endfor %}
+</ul>
+
+<h2>{% trans "Attachment types" %}</h2>
+<ul>
+    {% for link in organization.organization_attachment_types.all %}
+    <li>
+        {{ link.attachment_type.display_label }}
+        {% if link.attachment_type.german_label != link.attachment_type.english_label %}
+        <span class="muted">
+            —
+            {% if LANGUAGE_CODE == 'de' %}
+            {{ link.attachment_type.english_label }}
+            {% else %}
+            {{ link.attachment_type.german_label }}
+            {% endif %}
+        </span>
+        {% endif %}
+    </li>
+    {% empty %}
+    <li>{% trans "No attachment types assigned." %}</li>
+    {% endfor %}
+</ul>
+
+<h2>{% trans "Source content" %}</h2>
+<table>
+    <tbody>
+        <tr><th>{% trans "Description" %}</th><td>{{ organization.description|default:"-"|linebreaksbr }}</td></tr>
+        <tr><th>{% trans "Raw target groups" %}</th><td>{{ organization.target_group_raw|default:"-"|linebreaksbr }}</td></tr>
+        <tr><th>{% trans "Applicants" %}</th><td>{{ organization.applicants_raw|default:"-"|linebreaksbr }}</td></tr>
+        <tr><th>{% trans "Submission deadline" %}</th><td>{{ organization.submission_deadline_raw|default:"-"|linebreaksbr }}</td></tr>
+        <tr><th>{% trans "Submission address" %}</th><td>{{ organization.submission_address_raw|default:"-"|linebreaksbr }}</td></tr>
+        <tr><th>{% trans "Attachments" %}</th><td>{{ organization.attachments_raw|default:"-"|linebreaksbr }}</td></tr>
+        <tr><th>{% trans "Parse warning" %}</th><td>{{ organization.parse_warning|default:"-"|linebreaksbr }}</td></tr>
+        <tr><th>{% trans "Source file" %}</th><td>{{ organization.source_file|default:"-" }}</td></tr>
+    </tbody>
+</table>
+{% endblock %}

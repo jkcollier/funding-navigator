@@ -1,12 +1,13 @@
 {% extends "fonds/base.html" %}
+{% load i18n %}
 
-{% block title %}Home · Fonds Databank{% endblock %}
+{% block title %}{% trans "Home" %} · {% trans "Funding databank" %}{% endblock %}
 
 {% block content %}
-<h1>Fonds Databank</h1>
-<p>Choose a section:</p>
+<h1>{% trans "Funding databank" %}</h1>
+<p>{% trans "Choose a section:" %}</p>
 <ul>
-    <li><a href="/organizations/">Organizations (with edit)</a></li>
-    <li><a href="/targets/">Targets and linked organizations</a></li>
+    <li><a href="/organizations/">{% trans "Organizations (with edit)" %}</a></li>
+    <li><a href="/targets/">{% trans "Target groups and linked organizations" %}</a></li>
 </ul>
 {% endblock %}

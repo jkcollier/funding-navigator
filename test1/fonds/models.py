@@ -1,4 +1,18 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+from .target_group_labels import (
+    applicant_type_display_label,
+    applicant_type_english_label,
+    applicant_type_german_label,
+    attachment_type_display_label,
+    attachment_type_english_label,
+    attachment_type_german_label,
+    target_group_display_label,
+    target_group_english_label,
+    target_group_german_label,
+    target_group_variants_de,
+)
 
 
 class Organization(models.Model):
@@ -32,6 +46,8 @@ class Organization(models.Model):
     class Meta:
         db_table = "organizations"
         managed = False
+        verbose_name = _("organization")
+        verbose_name_plural = _("organizations")
 
     def __str__(self):
         return self.name
@@ -45,9 +61,27 @@ class TargetGroup(models.Model):
     class Meta:
         db_table = "target_groups"
         managed = False
+        verbose_name = _("target group")
+        verbose_name_plural = _("target groups")
 
     def __str__(self):
         return self.name
+
+    @property
+    def display_name(self) -> str:
+        return target_group_display_label(self.slug, self.name)
+
+    @property
+    def german_name(self) -> str:
+        return target_group_german_label(self.slug, self.name)
+
+    @property
+    def english_name(self) -> str:
+        return target_group_english_label(self.slug, self.name)
+
+    @property
+    def german_variants(self) -> tuple[str, ...]:
+        return target_group_variants_de(self.slug)
 
 
 class OrganizationTargetGroup(models.Model):
@@ -83,6 +117,23 @@ class ApplicantType(models.Model):
     class Meta:
         db_table = "applicant_types"
         managed = False
+        verbose_name = _("applicant type")
+        verbose_name_plural = _("applicant types")
+
+    def __str__(self):
+        return self.display_label
+
+    @property
+    def display_label(self) -> str:
+        return applicant_type_display_label(self.applicant_type_id, self.label)
+
+    @property
+    def german_label(self) -> str:
+        return applicant_type_german_label(self.applicant_type_id, self.label)
+
+    @property
+    def english_label(self) -> str:
+        return applicant_type_english_label(self.applicant_type_id, self.label)
 
 
 class OrganizationApplicantType(models.Model):
@@ -118,6 +169,23 @@ class AttachmentType(models.Model):
     class Meta:
         db_table = "attachment_types"
         managed = False
+        verbose_name = _("attachment type")
+        verbose_name_plural = _("attachment types")
+
+    def __str__(self):
+        return self.display_label
+
+    @property
+    def display_label(self) -> str:
+        return attachment_type_display_label(self.attachment_type_id, self.label)
+
+    @property
+    def german_label(self) -> str:
+        return attachment_type_german_label(self.attachment_type_id, self.label)
+
+    @property
+    def english_label(self) -> str:
+        return attachment_type_english_label(self.attachment_type_id, self.label)
 
 
 class OrganizationAttachmentType(models.Model):

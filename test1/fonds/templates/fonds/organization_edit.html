@@ -1,10 +1,11 @@
 {% extends "fonds/base.html" %}
+{% load i18n %}
 
-{% block title %}Edit organization · Fonds Databank{% endblock %}
+{% block title %}{% trans "Edit organization" %} · {% trans "Funding databank" %}{% endblock %}
 
 {% block content %}
-<h1>Edit organization</h1>
-<p><strong>{{ organization.name }}</strong> <span class="muted">({{ organization.org_id }})</span></p>
+<h1>{% trans "Edit organization" %}</h1>
+<p><strong>{{ organization.name }}</strong> <span class="muted">({{ organization.org_key }})</span></p>
 
 <form method="post">
     {% csrf_token %}
@@ -17,7 +18,7 @@
     </div>
     {% endfor %}
 
-    <button class="btn" type="submit">Save</button>
-    <a class="btn" href="/organizations/">Back</a>
+    <button class="btn" type="submit">{% trans "Save" %}</button>
+    <a class="btn" href="/organizations/">{% trans "Back" %}</a>
 </form>
 {% endblock %}

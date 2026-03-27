@@ -1,27 +1,38 @@
 {% extends "fonds/base.html" %}
+{% load i18n %}
 
-{% block title %}Target detail · Fonds Databank{% endblock %}
+{% block title %}{% trans "Target group detail" %} · {% trans "Funding databank" %}{% endblock %}
 
 {% block content %}
-<h1>Target: {{ target_group.raw_label }}</h1>
-<p class="muted">ID: {{ target_group.target_group_id }}</p>
+<h1>{% trans "Target group:" %} {{ target_group.display_name }}</h1>
+<p class="muted">{% trans "Slug:" %} {{ target_group.slug }}</p>
 
-{% if target_group.canonical_group %}
-<p>Canonical: <strong>{{ target_group.canonical_group }}</strong></p>
+{% if target_group.german_name != target_group.english_name %}
+<p>
+    {% if LANGUAGE_CODE == 'de' %}
+    {% trans "English label:" %} <strong>{{ target_group.english_name }}</strong>
+    {% else %}
+    {% trans "German label:" %} <strong>{{ target_group.german_name }}</strong>
+    {% endif %}
+</p>
 {% endif %}
 
-<h2>Organizations</h2>
+{% if target_group.german_variants %}
+<p class="muted">{% trans "German source labels:" %} {{ target_group.german_variants|join:", " }}</p>
+{% endif %}
+
+<h2>{% trans "Organizations" %}</h2>
 <ul>
     {% for org in organizations %}
         <li>
             {{ org.name }}
-            <a href="/organizations/{{ org.org_key }}/edit/">Edit</a>
+            <a href="/organizations/{{ org.org_key }}/edit/">{% trans "Edit" %}</a>
             <a href="/api/organizations/{{ org.org_key }}/">JSON</a>
         </li>
     {% empty %}
-        <li>No organizations linked to this target.</li>
+        <li>{% trans "No organizations linked to this target group." %}</li>
     {% endfor %}
 </ul>
 
-<p><a href="/targets/">Back to targets</a></p>
+<p><a href="/targets/">{% trans "Back to target groups" %}</a></p>
 {% endblock %}

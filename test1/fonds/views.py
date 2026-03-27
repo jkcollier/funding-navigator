@@ -2,6 +2,7 @@ from django.db.models import Count, Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET
 
 from .forms import OrganizationForm
@@ -45,6 +46,102 @@ def organizations_page(request):
     )
 
 
+def _organization_queryset():
+    return Organization.objects.prefetch_related(
+        Prefetch(
+            "organization_target_groups",
+            queryset=OrganizationTargetGroup.objects.select_related("target_group"),
+        ),
+        Prefetch(
+            "organization_applicant_types",
+            queryset=OrganizationApplicantType.objects.select_related("applicant_type"),
+        ),
+        Prefetch(
+            "organization_attachment_types",
+            queryset=OrganizationAttachmentType.objects.select_related("attachment_type"),
+        ),
+    )
+
+
+def _serialized_organization(organization):
+    try:
+        overview = organization.overview
+    except OverviewDerived.DoesNotExist:
+        overview = None
+
+    return {
+        "id": organization.pk,
+        "org_id": organization.org_key,
+        "org_key": organization.org_key,
+        "name": organization.name,
+        "page_start": organization.page_start,
+        "description": organization.description,
+        "contact_raw": organization.contact_raw,
+        "address": organization.address,
+        "postal_code": organization.postal_code,
+        "city": organization.city,
+        "phone_numbers": organization.phone_numbers_jsonb,
+        "emails": organization.emails_jsonb,
+        "websites": organization.websites_jsonb,
+        "target_group_raw": organization.target_group_raw,
+        "applicants_raw": organization.applicants_raw,
+        "submission_deadline_raw": organization.submission_deadline_raw,
+        "submission_address_raw": organization.submission_address_raw,
+        "attachments_raw": organization.attachments_raw,
+        "raw_sections": organization.raw_sections_jsonb,
+        "parse_warning": organization.parse_warning,
+        "source_file": organization.source_file,
+        "content_language": "de",
+        "target_groups": [
+            {
+                "id": link.target_group.pk,
+                "name": link.target_group.display_name,
+                "english_name": link.target_group.english_name,
+                "german_name": link.target_group.german_name,
+                "german_variants": list(link.target_group.german_variants),
+                "slug": link.target_group.slug,
+            }
+            for link in organization.organization_target_groups.all()
+        ],
+        "applicant_types": [
+            {
+                "applicant_type_id": link.applicant_type.applicant_type_id,
+                "label": link.applicant_type.display_label,
+                "english_label": link.applicant_type.english_label,
+                "german_label": link.applicant_type.german_label,
+            }
+            for link in organization.organization_applicant_types.all()
+        ],
+        "attachment_types": [
+            {
+                "attachment_type_id": link.attachment_type.attachment_type_id,
+                "label": link.attachment_type.display_label,
+                "english_label": link.attachment_type.english_label,
+                "german_label": link.attachment_type.german_label,
+            }
+            for link in organization.organization_attachment_types.all()
+        ],
+        "overview": None
+        if overview is None
+        else {
+            "name": overview.name,
+            "page": overview.page,
+            "youth_family": overview.youth_family,
+            "elderly": overview.elderly,
+            "disability": overview.disability,
+            "health": overview.health,
+            "migration": overview.migration,
+            "education": overview.education,
+            "poverty": overview.poverty,
+            "individuals": overview.individuals,
+            "institutions": overview.institutions,
+            "exhausted": overview.exhausted,
+            "derived_from": overview.derived_from,
+            "parse_warning": overview.parse_warning,
+        },
+    }
+
+
 def organization_edit_page(request, org_id: str):
     organization = get_object_or_404(Organization, org_key=org_id)
 
@@ -67,15 +164,32 @@ def organization_edit_page(request, org_id: str):
 
 
 @require_GET
+def organization_detail_page(request, org_id: str):
+    organization = get_object_or_404(_organization_queryset(), org_key=org_id)
+
+    return render(
+        request,
+        "fonds/organization_detail.html",
+        {
+            "organization": organization,
+            "content_language": "de",
+        },
+    )
+
+
+@require_GET
 def target_groups_page(request):
-    groups = TargetGroup.objects.annotate(
+    groups = list(TargetGroup.objects.annotate(
         org_count=Count("organization_target_groups__org_id", distinct=True)
-    ).order_by("name")
+    ))
+    groups.sort(key=lambda group: group.display_name.casefold())
 
     grouped_targets = [
         {
             "group_key": tg.slug,
-            "canonical_group": tg.name,
+            "canonical_group": tg.display_name,
+            "canonical_group_en": tg.english_name,
+            "canonical_group_de": tg.german_name,
             "canonical_group_slug": tg.slug,
             "org_count": tg.org_count,
         }
@@ -182,115 +296,61 @@ def organizations_list(request):
 
 @require_GET
 def organization_detail(request, org_id: str):
-    organization = (
-        Organization.objects.filter(org_key=org_id)
-        .prefetch_related(
-            Prefetch(
-                "organization_target_groups",
-                queryset=OrganizationTargetGroup.objects.select_related("target_group"),
-            ),
-            Prefetch(
-                "organization_applicant_types",
-                queryset=OrganizationApplicantType.objects.select_related("applicant_type"),
-            ),
-            Prefetch(
-                "organization_attachment_types",
-                queryset=OrganizationAttachmentType.objects.select_related("attachment_type"),
-            ),
-        )
-        .first()
-    )
+    organization = _organization_queryset().filter(org_key=org_id).first()
 
     if organization is None:
-        return JsonResponse({"detail": "Not found."}, status=404)
+        return JsonResponse({"detail": _("Not found.")}, status=404)
 
-    try:
-        overview = organization.overview
-    except OverviewDerived.DoesNotExist:
-        overview = None
-
-    payload = {
-        "id": organization.pk,
-        "org_id": organization.org_key,   # backward-compat alias
-        "org_key": organization.org_key,
-        "name": organization.name,
-        "page_start": organization.page_start,
-        "description": organization.description,
-        "contact_raw": organization.contact_raw,
-        "address": organization.address,
-        "postal_code": organization.postal_code,
-        "city": organization.city,
-        "phone_numbers": organization.phone_numbers_jsonb,
-        "emails": organization.emails_jsonb,
-        "websites": organization.websites_jsonb,
-        "target_group_raw": organization.target_group_raw,
-        "applicants_raw": organization.applicants_raw,
-        "submission_deadline_raw": organization.submission_deadline_raw,
-        "submission_address_raw": organization.submission_address_raw,
-        "attachments_raw": organization.attachments_raw,
-        "raw_sections": organization.raw_sections_jsonb,
-        "parse_warning": organization.parse_warning,
-        "source_file": organization.source_file,
-        "target_groups": [
-            {
-                "id": link.target_group.pk,
-                "name": link.target_group.name,
-                "slug": link.target_group.slug,
-            }
-            for link in organization.organization_target_groups.all()
-        ],
-        "applicant_types": [
-            {
-                "applicant_type_id": link.applicant_type.applicant_type_id,
-                "label": link.applicant_type.label,
-            }
-            for link in organization.organization_applicant_types.all()
-        ],
-        "attachment_types": [
-            {
-                "attachment_type_id": link.attachment_type.attachment_type_id,
-                "label": link.attachment_type.label,
-            }
-            for link in organization.organization_attachment_types.all()
-        ],
-        "overview": None
-        if overview is None
-        else {
-            "name": overview.name,
-            "page": overview.page,
-            "youth_family": overview.youth_family,
-            "elderly": overview.elderly,
-            "disability": overview.disability,
-            "health": overview.health,
-            "migration": overview.migration,
-            "education": overview.education,
-            "poverty": overview.poverty,
-            "individuals": overview.individuals,
-            "institutions": overview.institutions,
-            "exhausted": overview.exhausted,
-            "derived_from": overview.derived_from,
-            "parse_warning": overview.parse_warning,
-        },
-    }
-
-    return JsonResponse(payload)
+    return JsonResponse(_serialized_organization(organization))
 
 
 @require_GET
 def target_groups_list(request):
-    rows = list(TargetGroup.objects.order_by("name").values())
+    groups = list(TargetGroup.objects.all())
+    groups.sort(key=lambda group: group.display_name.casefold())
+    rows = [
+        {
+            "id": group.id,
+            "name": group.display_name,
+            "english_name": group.english_name,
+            "german_name": group.german_name,
+            "german_variants": list(group.german_variants),
+            "slug": group.slug,
+        }
+        for group in groups
+    ]
     return JsonResponse({"count": len(rows), "results": rows})
 
 
 @require_GET
 def applicant_types_list(request):
-    rows = list(ApplicantType.objects.order_by("label").values())
+    applicant_types = list(ApplicantType.objects.all())
+    applicant_types.sort(key=lambda item: item.display_label.casefold())
+    rows = [
+        {
+            "applicant_type_id": item.applicant_type_id,
+            "label": item.display_label,
+            "english_label": item.english_label,
+            "german_label": item.german_label,
+        }
+        for item in applicant_types
+    ]
     return JsonResponse({"count": len(rows), "results": rows})
 
 
 @require_GET
 def attachment_types_list(request):
-    rows = list(AttachmentType.objects.order_by("label").values())
+    attachment_types = list(AttachmentType.objects.all())
+    attachment_types.sort(key=lambda item: item.display_label.casefold())
+    rows = [
+        {
+            "attachment_type_id": item.attachment_type_id,
+            "label": item.display_label,
+            "english_label": item.english_label,
+            "german_label": item.german_label,
+        }
+        for item in attachment_types
+    ]
     return JsonResponse({"count": len(rows), "results": rows})
 
 

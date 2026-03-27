@@ -1,28 +1,29 @@
 {% extends "fonds/base.html" %}
+{% load i18n %}
 
-{% block title %}Organizations · Fonds Databank{% endblock %}
+{% block title %}{% trans "Organizations" %} · {% trans "Funding databank" %}{% endblock %}
 
 {% block content %}
-<h1>Organizations</h1>
+<h1>{% trans "Organizations" %}</h1>
 
 {% if request.GET.saved %}
-<p class="success">Organization updated.</p>
+<p class="success">{% trans "Organization updated." %}</p>
 {% endif %}
 
 <form method="get" action="/organizations/">
-    <input type="text" name="q" value="{{ query }}" placeholder="Search name, city, description...">
-    <button class="btn" type="submit">Search</button>
+    <input type="text" name="q" value="{{ query }}" placeholder="{% trans 'Search name, city, description...' %}">
+    <button class="btn" type="submit">{% trans "Search" %}</button>
 </form>
 
-<p class="muted">Showing up to first 300 results.</p>
+<p class="muted">{% trans "Showing up to first 300 results." %}</p>
 
 <table>
     <thead>
         <tr>
             <th>Name</th>
-            <th>City</th>
-            <th>Postal code</th>
-            <th>Actions</th>
+            <th>{% trans "City" %}</th>
+            <th>{% trans "Postal code" %}</th>
+            <th>{% trans "Actions" %}</th>
         </tr>
     </thead>
     <tbody>
@@ -32,12 +33,13 @@
             <td>{{ org.city|default:"-" }}</td>
             <td>{{ org.postal_code|default:"-" }}</td>
             <td class="actions">
-                <a href="/organizations/{{ org.org_id }}/edit/">Edit</a>
-                <a href="/api/organizations/{{ org.org_id }}/">JSON</a>
+                <a href="/organizations/{{ org.org_key }}/">{% trans "View" %}</a>
+                <a href="/organizations/{{ org.org_key }}/edit/">{% trans "Edit" %}</a>
+                <a href="/api/organizations/{{ org.org_key }}/">JSON</a>
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="4">No organizations found.</td></tr>
+        <tr><td colspan="4">{% trans "No organizations found." %}</td></tr>
     {% endfor %}
     </tbody>
 </table>

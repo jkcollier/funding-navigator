@@ -1,16 +1,17 @@
 {% extends "fonds/base.html" %}
+{% load i18n %}
 
-{% block title %}Targets · Fonds Databank{% endblock %}
+{% block title %}{% trans "Target groups" %} · {% trans "Funding databank" %}{% endblock %}
 
 {% block content %}
-<h1>Targets</h1>
-<p class="muted">Click a canonical group to expand/collapse organization names.</p>
+<h1>{% trans "Target groups" %}</h1>
+<p class="muted">{% trans "Click a target group to expand or collapse organization names." %}</p>
 
 <table>
     <thead>
         <tr>
-            <th>Canonical group</th>
-            <th>Organizations</th>
+            <th>{% trans "Target group" %}</th>
+            <th>{% trans "Organizations" %}</th>
         </tr>
     </thead>
     <tbody>
@@ -27,6 +28,15 @@
                 >
                     ▶ {{ group.canonical_group }}
                 </button>
+                {% if group.canonical_group_de != group.canonical_group_en %}
+                <div class="muted">
+                    {% if LANGUAGE_CODE == 'de' %}
+                    {{ group.canonical_group_en }}
+                    {% else %}
+                    {{ group.canonical_group_de }}
+                    {% endif %}
+                </div>
+                {% endif %}
             </td>
             <td>{{ group.org_count }}</td>
         </tr>
@@ -36,7 +46,7 @@
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="3">No targets found.</td></tr>
+        <tr><td colspan="3">{% trans "No target groups found." %}</td></tr>
     {% endfor %}
     </tbody>
 </table>
@@ -60,7 +70,7 @@
             });
 
             if (!response.ok) {
-                container.textContent = 'Failed to load organizations.';
+                container.textContent = '{% trans "Failed to load organizations." %}';
                 return;
             }
 
@@ -68,7 +78,7 @@
             const items = data.results || [];
 
             if (items.length === 0) {
-                container.textContent = 'No organizations linked to this canonical group.';
+                container.textContent = '{% trans "No organizations linked to this target group." %}';
                 return;
             }
 
@@ -99,7 +109,7 @@
             if (typeof data.count === 'number' && data.count > items.length) {
                 const note = document.createElement('p');
                 note.className = 'muted';
-                note.textContent = `Showing first ${items.length} of ${data.count} organizations.`;
+                note.textContent = `{% trans "Showing first" %} ${items.length} {% trans "of" %} ${data.count} {% trans "organizations." %}`;
                 container.appendChild(note);
             }
         }
@@ -129,7 +139,7 @@
                     return;
                 }
 
-                container.textContent = 'Loading...';
+                container.textContent = '{% trans "Loading..." %}';
                 await loadOrganizations(button, container);
                 container.dataset.loaded = 'true';
             });

@@ -1,0 +1,222 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: test1\n"
+"POT-Creation-Date: 2026-03-27 00:00+0000\n"
+"PO-Revision-Date: 2026-03-27 00:00+0000\n"
+"Last-Translator: GitHub Copilot\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "English"
+msgstr "Englisch"
+
+msgid "German"
+msgstr "Deutsch"
+
+msgid "organization"
+msgstr "Organisation"
+
+msgid "organizations"
+msgstr "Organisationen"
+
+msgid "target group"
+msgstr "Zielgruppe"
+
+msgid "target groups"
+msgstr "Zielgruppen"
+
+msgid "applicant type"
+msgstr "Gesuchstellentyp"
+
+msgid "applicant types"
+msgstr "Gesuchstellentypen"
+
+msgid "attachment type"
+msgstr "Beilagentyp"
+
+msgid "attachment types"
+msgstr "Beilagentypen"
+
+msgid "Funding databank"
+msgstr "Förderdatenbank"
+
+msgid "Home"
+msgstr "Start"
+
+msgid "Organizations"
+msgstr "Organisationen"
+
+msgid "Target groups"
+msgstr "Zielgruppen"
+
+msgid "Language"
+msgstr "Sprache"
+
+msgid "Choose a section:"
+msgstr "Wählen Sie einen Bereich:"
+
+msgid "Organizations (with edit)"
+msgstr "Organisationen (mit Bearbeitung)"
+
+msgid "Target groups and linked organizations"
+msgstr "Zielgruppen und zugehörige Organisationen"
+
+msgid "Organization updated."
+msgstr "Organisation aktualisiert."
+
+msgid "Search name, city, description..."
+msgstr "Name, Ort, Beschreibung suchen..."
+
+msgid "Search"
+msgstr "Suchen"
+
+msgid "Showing up to first 300 results."
+msgstr "Es werden höchstens die ersten 300 Ergebnisse angezeigt."
+
+msgid "City"
+msgstr "Ort"
+
+msgid "Postal code"
+msgstr "Postleitzahl"
+
+msgid "Actions"
+msgstr "Aktionen"
+
+msgid "Edit"
+msgstr "Bearbeiten"
+
+msgid "View"
+msgstr "Ansehen"
+
+msgid "No organizations found."
+msgstr "Keine Organisationen gefunden."
+
+msgid "Click a target group to expand or collapse organization names."
+msgstr "Klicken Sie auf eine Zielgruppe, um die Organisationsnamen ein- oder auszublenden."
+
+msgid "Target group"
+msgstr "Zielgruppe"
+
+msgid "No target groups found."
+msgstr "Keine Zielgruppen gefunden."
+
+msgid "Failed to load organizations."
+msgstr "Organisationen konnten nicht geladen werden."
+
+msgid "No organizations linked to this target group."
+msgstr "Dieser Zielgruppe sind keine Organisationen zugeordnet."
+
+msgid "Showing first"
+msgstr "Zeige"
+
+msgid "of"
+msgstr "von"
+
+msgid "organizations."
+msgstr "Organisationen."
+
+msgid "Loading..."
+msgstr "Lädt..."
+
+msgid "Target group detail"
+msgstr "Zielgruppendetail"
+
+msgid "Target group:"
+msgstr "Zielgruppe:"
+
+msgid "Slug:"
+msgstr "Slug:"
+
+msgid "English label:"
+msgstr "Englische Bezeichnung:"
+
+msgid "German label:"
+msgstr "Deutsche Bezeichnung:"
+
+msgid "German source labels:"
+msgstr "Deutsche Quellbezeichnungen:"
+
+msgid "Back to target groups"
+msgstr "Zurück zu den Zielgruppen"
+
+msgid "Edit organization"
+msgstr "Organisation bearbeiten"
+
+msgid "Save"
+msgstr "Speichern"
+
+msgid "Back"
+msgstr "Zurück"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Page start"
+msgstr "Seitenbeginn"
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "Contact"
+msgstr "Kontakt"
+
+msgid "Address"
+msgstr "Adresse"
+
+msgid "Raw target groups"
+msgstr "Roh-Zielgruppen"
+
+msgid "Applicants"
+msgstr "Gesuchstellende"
+
+msgid "Submission deadline"
+msgstr "Einreichungsfrist"
+
+msgid "Submission address"
+msgstr "Einreichungsadresse"
+
+msgid "Attachments"
+msgstr "Beilagen"
+
+msgid "Parse warning"
+msgstr "Parserwarnung"
+
+msgid "Source file"
+msgstr "Quelldatei"
+
+msgid "Free-text organization content is currently shown in its original source language (German) unless an explicit translation exists."
+msgstr "Freitextinhalte von Organisationen werden derzeit in ihrer ursprünglichen Quellsprache (Deutsch) angezeigt, sofern keine ausdrückliche Übersetzung vorliegt."
+
+msgid "Summary"
+msgstr "Übersicht"
+
+msgid "Websites"
+msgstr "Webseiten"
+
+msgid "Emails"
+msgstr "E-Mail-Adressen"
+
+msgid "Phone numbers"
+msgstr "Telefonnummern"
+
+msgid "No target groups assigned."
+msgstr "Keine Zielgruppen zugeordnet."
+
+msgid "Applicant types"
+msgstr "Gesuchstellentypen"
+
+msgid "No applicant types assigned."
+msgstr "Keine Gesuchstellentypen zugeordnet."
+
+msgid "Attachment types"
+msgstr "Beilagentypen"
+
+msgid "No attachment types assigned."
+msgstr "Keine Beilagentypen zugeordnet."
+
+msgid "Source content"
+msgstr "Quellinhalt"

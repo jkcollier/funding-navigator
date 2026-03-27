@@ -1,12 +1,14 @@
+{% load i18n %}
 <!doctype html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Fonds Databank{% endblock %}</title>
+    <title>{% block title %}{% trans "Funding databank" %}{% endblock %}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 1000px; line-height: 1.4; }
-        nav a { margin-right: 1rem; }
+        nav { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+        nav .nav-links a { margin-right: 1rem; }
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
         th, td { border: 1px solid #ddd; padding: 0.5rem; vertical-align: top; }
         th { background: #f3f3f3; text-align: left; }
@@ -17,14 +19,29 @@
         form label { display:block; font-weight:600; margin-bottom:.25rem; }
         input[type="text"], input[type="number"], textarea { width:100%; padding:.45rem; box-sizing:border-box; }
         .btn { display:inline-block; padding:.45rem .8rem; border:1px solid #333; text-decoration:none; background:#fff; color:#111; cursor:pointer; }
+        .language-switcher { display:flex; align-items:center; gap:.5rem; }
     </style>
 </head>
 <body>
     <nav>
-        <a href="/">Home</a>
-        <a href="/organizations/">Organizations</a>
-        <a href="/targets/">Targets</a>
-        <a href="/api/organizations/">API</a>
+        <div class="nav-links">
+            <a href="/">{% trans "Home" %}</a>
+            <a href="/organizations/">{% trans "Organizations" %}</a>
+            <a href="/targets/">{% trans "Target groups" %}</a>
+            <a href="/api/organizations/">API</a>
+        </div>
+        <form class="language-switcher" action="/i18n/setlang/" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <label for="language-select">{% trans "Language" %}</label>
+            <select id="language-select" name="language" onchange="this.form.submit()">
+                {% get_current_language as CURRENT_LANGUAGE %}
+                {% get_available_languages as AVAILABLE_LANGUAGES %}
+                {% for lang_code, lang_name in AVAILABLE_LANGUAGES %}
+                <option value="{{ lang_code }}" {% if lang_code == CURRENT_LANGUAGE %}selected{% endif %}>{{ lang_name }}</option>
+                {% endfor %}
+            </select>
+        </form>
     </nav>
     <hr>
     {% block content %}{% endblock %}

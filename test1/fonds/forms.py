@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from .models import Organization
 
@@ -31,4 +32,20 @@ class OrganizationForm(forms.ModelForm):
             "submission_address_raw": forms.Textarea(attrs={"rows": 3}),
             "attachments_raw": forms.Textarea(attrs={"rows": 3}),
             "parse_warning": forms.Textarea(attrs={"rows": 2}),
+        }
+        labels = {
+            "name": _("Name"),
+            "page_start": _("Page start"),
+            "description": _("Description"),
+            "contact_raw": _("Contact"),
+            "address": _("Address"),
+            "postal_code": _("Postal code"),
+            "city": _("City"),
+            "target_group_raw": _("Raw target groups"),
+            "applicants_raw": _("Applicants"),
+            "submission_deadline_raw": _("Submission deadline"),
+            "submission_address_raw": _("Submission address"),
+            "attachments_raw": _("Attachments"),
+            "parse_warning": _("Parse warning"),
+            "source_file": _("Source file"),
         }
