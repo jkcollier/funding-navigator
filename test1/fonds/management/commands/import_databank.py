@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS target_groups (
 );
 
 CREATE TABLE IF NOT EXISTS organization_target_groups (
-    id BIGSERIAL UNIQUE NOT NULL,
+    join_id BIGSERIAL UNIQUE NOT NULL,
     org_id TEXT NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
     target_group_id TEXT NOT NULL REFERENCES target_groups(target_group_id) ON DELETE CASCADE,
     PRIMARY KEY (org_id, target_group_id)
@@ -87,13 +87,26 @@ CREATE TABLE IF NOT EXISTS overview_derived (
 
 
 POST_CREATE_SQL = """
-ALTER TABLE organization_target_groups ADD COLUMN IF NOT EXISTS id BIGSERIAL;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'organization_target_groups' AND column_name = 'id'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'organization_target_groups' AND column_name = 'join_id'
+    ) THEN
+        ALTER TABLE organization_target_groups RENAME COLUMN id TO join_id;
+    END IF;
+END$$;
+
+ALTER TABLE organization_target_groups ADD COLUMN IF NOT EXISTS join_id BIGSERIAL;
 ALTER TABLE organization_applicant_types ADD COLUMN IF NOT EXISTS id BIGSERIAL;
 ALTER TABLE organization_attachment_types ADD COLUMN IF NOT EXISTS id BIGSERIAL;
 
 UPDATE organization_target_groups
-SET id = nextval(pg_get_serial_sequence('organization_target_groups', 'id'))
-WHERE id IS NULL;
+SET join_id = nextval(pg_get_serial_sequence('organization_target_groups', 'join_id'))
+WHERE join_id IS NULL;
 UPDATE organization_applicant_types
 SET id = nextval(pg_get_serial_sequence('organization_applicant_types', 'id'))
 WHERE id IS NULL;
@@ -101,11 +114,11 @@ UPDATE organization_attachment_types
 SET id = nextval(pg_get_serial_sequence('organization_attachment_types', 'id'))
 WHERE id IS NULL;
 
-ALTER TABLE organization_target_groups ALTER COLUMN id SET NOT NULL;
+ALTER TABLE organization_target_groups ALTER COLUMN join_id SET NOT NULL;
 ALTER TABLE organization_applicant_types ALTER COLUMN id SET NOT NULL;
 ALTER TABLE organization_attachment_types ALTER COLUMN id SET NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS organization_target_groups_id_uniq ON organization_target_groups(id);
+CREATE UNIQUE INDEX IF NOT EXISTS organization_target_groups_join_id_uniq ON organization_target_groups(join_id);
 CREATE UNIQUE INDEX IF NOT EXISTS organization_applicant_types_id_uniq ON organization_applicant_types(id);
 CREATE UNIQUE INDEX IF NOT EXISTS organization_attachment_types_id_uniq ON organization_attachment_types(id);
 """

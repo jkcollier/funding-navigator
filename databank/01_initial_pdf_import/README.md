@@ -47,6 +47,12 @@ The command creates these PostgreSQL tables if missing and then imports all CSVs
 - `organization_attachment_types`
 - `overview_derived`
 
+Normalization note:
+
+- Target groups live in `target_groups` (dimension table)
+- Organization-to-target mapping lives in `organization_target_groups`
+- `organization_target_groups` includes `join_id` plus (`org_id`, `target_group_id`)
+
 ## API endpoints exposed by Django (`./test1`)
 
 Base path: `/api/`

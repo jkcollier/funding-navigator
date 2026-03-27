@@ -15,8 +15,8 @@
     {% for org in organizations %}
         <li>
             {{ org.name }}
-            <a href="/organizations/{{ org.org_id }}/edit/">Edit</a>
-            <a href="/api/organizations/{{ org.org_id }}/">JSON</a>
+            <a href="/organizations/{{ org.org_key }}/edit/">Edit</a>
+            <a href="/api/organizations/{{ org.org_key }}/">JSON</a>
         </li>
     {% empty %}
         <li>No organizations linked to this target.</li>

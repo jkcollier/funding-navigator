@@ -7,7 +7,7 @@ class OrganizationForm(forms.ModelForm):
     class Meta:
         model = Organization
         fields = [
-            "name",
+            "name",   # org_key (slug) is intentionally excluded
             "page_start",
             "description",
             "contact_raw",

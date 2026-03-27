@@ -4,25 +4,136 @@
 
 {% block content %}
 <h1>Targets</h1>
+<p class="muted">Click a canonical group to expand/collapse organization names.</p>
 
 <table>
     <thead>
         <tr>
-            <th>Raw label</th>
             <th>Canonical group</th>
             <th>Organizations</th>
         </tr>
     </thead>
     <tbody>
-    {% for target in targets %}
+    {% for group in grouped_targets %}
         <tr>
-            <td><a href="/targets/{{ target.target_group_id }}/">{{ target.raw_label }}</a></td>
-            <td>{{ target.canonical_group|default:"-" }}</td>
-            <td>{{ target.org_count }}</td>
+            <td>
+                <button
+                    type="button"
+                    class="btn toggle-canonical"
+                    data-group-key="{{ group.group_key }}"
+                    data-canonical-group="{{ group.canonical_group }}"
+                    data-canonical-group-slug="{{ group.canonical_group_slug|default:'' }}"
+                    data-open="false"
+                >
+                    ▶ {{ group.canonical_group }}
+                </button>
+            </td>
+            <td>{{ group.org_count }}</td>
+        </tr>
+        <tr id="canonical-orgs-{{ group.group_key }}" style="display:none;">
+            <td colspan="3">
+                <div class="canonical-orgs-content muted" data-loaded="false">Loading...</div>
+            </td>
         </tr>
     {% empty %}
         <tr><td colspan="3">No targets found.</td></tr>
     {% endfor %}
     </tbody>
 </table>
+
+<script>
+    (() => {
+        const buttons = document.querySelectorAll('.toggle-canonical');
+
+        async function loadOrganizations(button, container) {
+            const canonicalGroupSlug = button.dataset.canonicalGroupSlug || '';
+            const params = new URLSearchParams({ limit: '500' });
+
+            if (canonicalGroupSlug) {
+                params.set('canonical_group_slug', canonicalGroupSlug);
+            } else {
+                params.set('uncategorized_targets', '1');
+            }
+
+            const response = await fetch(`/api/organizations/?${params.toString()}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!response.ok) {
+                container.textContent = 'Failed to load organizations.';
+                return;
+            }
+
+            const data = await response.json();
+            const items = data.results || [];
+
+            if (items.length === 0) {
+                container.textContent = 'No organizations linked to this canonical group.';
+                return;
+            }
+
+            const list = document.createElement('ul');
+            for (const org of items) {
+                const li = document.createElement('li');
+
+                const editLink = document.createElement('a');
+                editLink.href = `/organizations/${encodeURIComponent(org.org_id)}/edit/`;
+                editLink.textContent = org.name;
+
+                const sep = document.createTextNode(' ');
+
+                const jsonLink = document.createElement('a');
+                jsonLink.href = `/api/organizations/${encodeURIComponent(org.org_id)}/`;
+                jsonLink.textContent = '[json]';
+
+                li.appendChild(editLink);
+                li.appendChild(sep);
+                li.appendChild(jsonLink);
+                list.appendChild(li);
+            }
+
+            container.innerHTML = '';
+            container.classList.remove('muted');
+            container.appendChild(list);
+
+            if (typeof data.count === 'number' && data.count > items.length) {
+                const note = document.createElement('p');
+                note.className = 'muted';
+                note.textContent = `Showing first ${items.length} of ${data.count} organizations.`;
+                container.appendChild(note);
+            }
+        }
+
+        buttons.forEach((button) => {
+            button.addEventListener('click', async () => {
+                const groupKey = button.dataset.groupKey;
+                const detailsRow = document.getElementById(`canonical-orgs-${groupKey}`);
+                if (!detailsRow) {
+                    return;
+                }
+
+                const isOpen = button.dataset.open === 'true';
+                if (isOpen) {
+                    detailsRow.style.display = 'none';
+                    button.dataset.open = 'false';
+                    button.textContent = `▶ ${button.textContent.replace(/^▼\s|^▶\s/, '')}`;
+                    return;
+                }
+
+                detailsRow.style.display = '';
+                button.dataset.open = 'true';
+                button.textContent = `▼ ${button.textContent.replace(/^▼\s|^▶\s/, '')}`;
+
+                const container = detailsRow.querySelector('.canonical-orgs-content');
+                if (!container || container.dataset.loaded === 'true') {
+                    return;
+                }
+
+                container.textContent = 'Loading...';
+                await loadOrganizations(button, container);
+                container.dataset.loaded = 'true';
+            });
+        });
+    })();
+</script>
 {% endblock %}

@@ -46,7 +46,7 @@ def organizations_page(request):
 
 
 def organization_edit_page(request, org_id: str):
-    organization = get_object_or_404(Organization, org_id=org_id)
+    organization = get_object_or_404(Organization, org_key=org_id)
 
     if request.method == "POST":
         form = OrganizationForm(request.POST, instance=organization)
@@ -68,23 +68,34 @@ def organization_edit_page(request, org_id: str):
 
 @require_GET
 def target_groups_page(request):
-    targets = TargetGroup.objects.order_by("raw_label").annotate(
+    groups = TargetGroup.objects.annotate(
         org_count=Count("organization_target_groups__org_id", distinct=True)
-    )
+    ).order_by("name")
+
+    grouped_targets = [
+        {
+            "group_key": tg.slug,
+            "canonical_group": tg.name,
+            "canonical_group_slug": tg.slug,
+            "org_count": tg.org_count,
+        }
+        for tg in groups
+    ]
+
     return render(
         request,
         "fonds/target_groups_list.html",
         {
-            "targets": targets,
+            "grouped_targets": grouped_targets,
         },
     )
 
 
 @require_GET
 def target_group_detail_page(request, target_group_id: str):
-    target_group = get_object_or_404(TargetGroup, target_group_id=target_group_id)
+    target_group = get_object_or_404(TargetGroup, slug=target_group_id)
     organizations = (
-        Organization.objects.filter(organization_target_groups__target_group_id=target_group_id)
+        Organization.objects.filter(organization_target_groups__target_group__slug=target_group_id)
         .order_by("name")
         .distinct()
     )
@@ -115,6 +126,8 @@ def organizations_list(request):
     q = request.GET.get("q")
     city = request.GET.get("city")
     target_group_id = request.GET.get("target_group_id")
+    canonical_group_slug = request.GET.get("canonical_group_slug")
+    uncategorized_targets = request.GET.get("uncategorized_targets")
     applicant_type_id = request.GET.get("applicant_type_id")
     attachment_type_id = request.GET.get("attachment_type_id")
 
@@ -131,7 +144,16 @@ def organizations_list(request):
         queryset = queryset.filter(city__icontains=city)
 
     if target_group_id:
-        queryset = queryset.filter(organization_target_groups__target_group_id=target_group_id)
+        queryset = queryset.filter(organization_target_groups__target_group__slug=target_group_id)
+
+    if canonical_group_slug:
+        queryset = queryset.filter(
+            organization_target_groups__target_group__slug=canonical_group_slug
+        )
+
+    if uncategorized_targets in {"1", "true", "yes"}:
+        # Organizations with no canonical target group links
+        queryset = queryset.filter(organization_target_groups__isnull=True)
 
     if applicant_type_id:
         queryset = queryset.filter(organization_applicant_types__applicant_type_id=applicant_type_id)
@@ -142,9 +164,10 @@ def organizations_list(request):
     queryset = queryset.distinct()
 
     limit = _parse_limit(request.GET.get("limit"))
-    rows = list(
+    raw_rows = list(
         queryset.values(
-            "org_id",
+            "id",
+            "org_key",
             "name",
             "city",
             "postal_code",
@@ -152,6 +175,7 @@ def organizations_list(request):
             "parse_warning",
         )[:limit]
     )
+    rows = [{**r, "org_id": r["org_key"]} for r in raw_rows]
 
     return JsonResponse({"count": queryset.count(), "results": rows})
 
@@ -159,7 +183,7 @@ def organizations_list(request):
 @require_GET
 def organization_detail(request, org_id: str):
     organization = (
-        Organization.objects.filter(org_id=org_id)
+        Organization.objects.filter(org_key=org_id)
         .prefetch_related(
             Prefetch(
                 "organization_target_groups",
@@ -186,7 +210,9 @@ def organization_detail(request, org_id: str):
         overview = None
 
     payload = {
-        "org_id": organization.org_id,
+        "id": organization.pk,
+        "org_id": organization.org_key,   # backward-compat alias
+        "org_key": organization.org_key,
         "name": organization.name,
         "page_start": organization.page_start,
         "description": organization.description,
@@ -207,10 +233,9 @@ def organization_detail(request, org_id: str):
         "source_file": organization.source_file,
         "target_groups": [
             {
-                "target_group_id": link.target_group.target_group_id,
-                "raw_label": link.target_group.raw_label,
-                "canonical_group": link.target_group.canonical_group,
-                "canonical_group_slug": link.target_group.canonical_group_slug,
+                "id": link.target_group.pk,
+                "name": link.target_group.name,
+                "slug": link.target_group.slug,
             }
             for link in organization.organization_target_groups.all()
         ],
@@ -253,7 +278,7 @@ def organization_detail(request, org_id: str):
 
 @require_GET
 def target_groups_list(request):
-    rows = list(TargetGroup.objects.order_by("raw_label").values())
+    rows = list(TargetGroup.objects.order_by("name").values())
     return JsonResponse({"count": len(rows), "results": rows})
 
 

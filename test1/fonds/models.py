@@ -2,7 +2,8 @@ from django.db import models
 
 
 class Organization(models.Model):
-    org_id = models.TextField(primary_key=True)
+    id = models.AutoField(primary_key=True)
+    org_key = models.TextField(unique=True)  # original slug, used in URLs
     name = models.TextField()
     page_start = models.IntegerField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
@@ -22,31 +23,56 @@ class Organization(models.Model):
     parse_warning = models.TextField(null=True, blank=True)
     source_file = models.TextField(null=True, blank=True)
 
+    target_groups = models.ManyToManyField(
+        "TargetGroup",
+        through="OrganizationTargetGroup",
+        related_name="organizations",
+    )
+
     class Meta:
         db_table = "organizations"
         managed = False
 
+    def __str__(self):
+        return self.name
+
 
 class TargetGroup(models.Model):
-    target_group_id = models.TextField(primary_key=True)
-    raw_label = models.TextField(unique=True)
-    canonical_group = models.TextField(null=True, blank=True)
-    canonical_group_slug = models.TextField(null=True, blank=True)
+    id = models.AutoField(primary_key=True)
+    name = models.TextField()
+    slug = models.TextField(unique=True)
 
     class Meta:
         db_table = "target_groups"
         managed = False
 
+    def __str__(self):
+        return self.name
+
 
 class OrganizationTargetGroup(models.Model):
-    org = models.ForeignKey(Organization, on_delete=models.CASCADE, db_column="org_id", related_name="organization_target_groups")
-    target_group = models.ForeignKey(TargetGroup, on_delete=models.CASCADE, db_column="target_group_id", related_name="organization_target_groups")
+    join_id = models.AutoField(primary_key=True, db_column="join_id")
+    org = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        db_column="org_id",
+        related_name="organization_target_groups",
+    )
+    target_group = models.ForeignKey(
+        TargetGroup,
+        on_delete=models.CASCADE,
+        db_column="target_group_id",
+        related_name="organization_target_groups",
+    )
 
     class Meta:
         db_table = "organization_target_groups"
         managed = False
         constraints = [
-            models.UniqueConstraint(fields=["org", "target_group"], name="organization_target_groups_pkey"),
+            models.UniqueConstraint(
+                fields=["org", "target_group"],
+                name="organization_target_groups_pkey",
+            ),
         ]
 
 
@@ -60,14 +86,28 @@ class ApplicantType(models.Model):
 
 
 class OrganizationApplicantType(models.Model):
-    org = models.ForeignKey(Organization, on_delete=models.CASCADE, db_column="org_id", related_name="organization_applicant_types")
-    applicant_type = models.ForeignKey(ApplicantType, on_delete=models.CASCADE, db_column="applicant_type_id", related_name="organization_applicant_types")
+    id = models.BigAutoField(primary_key=True)
+    org = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        db_column="org_id",
+        related_name="organization_applicant_types",
+    )
+    applicant_type = models.ForeignKey(
+        ApplicantType,
+        on_delete=models.CASCADE,
+        db_column="applicant_type_id",
+        related_name="organization_applicant_types",
+    )
 
     class Meta:
         db_table = "organization_applicant_types"
         managed = False
         constraints = [
-            models.UniqueConstraint(fields=["org", "applicant_type"], name="organization_applicant_types_pkey"),
+            models.UniqueConstraint(
+                fields=["org", "applicant_type"],
+                name="organization_applicant_types_pkey",
+            ),
         ]
 
 
@@ -81,19 +121,39 @@ class AttachmentType(models.Model):
 
 
 class OrganizationAttachmentType(models.Model):
-    org = models.ForeignKey(Organization, on_delete=models.CASCADE, db_column="org_id", related_name="organization_attachment_types")
-    attachment_type = models.ForeignKey(AttachmentType, on_delete=models.CASCADE, db_column="attachment_type_id", related_name="organization_attachment_types")
+    id = models.BigAutoField(primary_key=True)
+    org = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        db_column="org_id",
+        related_name="organization_attachment_types",
+    )
+    attachment_type = models.ForeignKey(
+        AttachmentType,
+        on_delete=models.CASCADE,
+        db_column="attachment_type_id",
+        related_name="organization_attachment_types",
+    )
 
     class Meta:
         db_table = "organization_attachment_types"
         managed = False
         constraints = [
-            models.UniqueConstraint(fields=["org", "attachment_type"], name="organization_attachment_types_pkey"),
+            models.UniqueConstraint(
+                fields=["org", "attachment_type"],
+                name="organization_attachment_types_pkey",
+            ),
         ]
 
 
 class OverviewDerived(models.Model):
-    org = models.OneToOneField(Organization, on_delete=models.CASCADE, db_column="org_id", primary_key=True, related_name="overview")
+    org = models.OneToOneField(
+        Organization,
+        on_delete=models.CASCADE,
+        db_column="org_id",
+        primary_key=True,
+        related_name="overview",
+    )
     name = models.TextField()
     page = models.IntegerField(null=True, blank=True)
     youth_family = models.BooleanField(default=False)
