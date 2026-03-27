@@ -9,21 +9,25 @@ INIT_DIR="$PROJECT_ROOT/init-scripts"
 load_env() {
   local env_file="$1"
   while IFS= read -r line || [[ -n "$line" ]]; do
-    line=${line%$''}
+    line=${line%$'\r'}
     [[ -z "$line" ]] && continue
     [[ "$line" =~ ^[[:space:]]*# ]] && continue
-    if [[ "$line" != *=* ]]; then
-      continue
-    fi
+    [[ "$line" != *=* ]] && continue
+
     local key=${line%%=*}
     local value=${line#*=}
-    key=${key//[$'	
- ']}
-    if [[ -z "$key" ]]; then
-      continue
-    fi
+    key=${key//[$'\t\r\n ']}
+    [[ -z "$key" ]] && continue
     export "$key=$value"
   done < "$env_file"
+}
+
+require_command() {
+  local command_name="$1"
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    echo "ERROR: $command_name is not installed. Rebuild the web image after updating the Dockerfile." >&2
+    exit 1
+  fi
 }
 
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -37,14 +41,8 @@ load_env "$ENV_FILE"
 : "${POSTGRES_USER:?POSTGRES_USER must be set in .env}"
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}"
 
-if command -v docker >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker compose)
-elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker-compose)
-else
-  echo "ERROR: docker compose or docker-compose is required to generate init scripts." >&2
-  exit 1
-fi
+require_command pg_dump
+require_command psql
 
 mkdir -p "$INIT_DIR"
 
@@ -64,9 +62,20 @@ echo "Generating PostgreSQL init scripts for database: $POSTGRES_DB"
 echo
 
 echo "Creating schema dump..."
-"${COMPOSE_CMD[@]}" exec -T db env PGPASSWORD="$POSTGRES_PASSWORD"   pg_dump   -U "$POSTGRES_USER"   -d "$POSTGRES_DB"   --schema-only   --no-owner   --no-privileges   --clean   --if-exists   > "$TMP_SCHEMA"
+PGPASSWORD="$POSTGRES_PASSWORD" \
+  pg_dump \
+  -h "${POSTGRES_HOST:-db}" \
+  -p "${POSTGRES_PORT:-5432}" \
+  -U "$POSTGRES_USER" \
+  -d "$POSTGRES_DB" \
+  --schema-only \
+  --no-owner \
+  --no-privileges \
+  --clean \
+  --if-exists \
+  > "$TMP_SCHEMA"
 
-cat > "$SCHEMA_FILE" <<EOF
+cat > "$SCHEMA_FILE" <<EOF_SCHEMA
 -- ============================================================================
 -- ${POSTGRES_DB} schema
 -- ============================================================================
@@ -74,15 +83,26 @@ cat > "$SCHEMA_FILE" <<EOF
 -- Regenerate from the current database state when schema changes.
 -- ============================================================================
 
-EOF
+EOF_SCHEMA
 cat "$TMP_SCHEMA" >> "$SCHEMA_FILE"
 
 echo "  ✓ Created $(basename "$SCHEMA_FILE")"
 
 echo "Creating full data dump..."
-"${COMPOSE_CMD[@]}" exec -T db env PGPASSWORD="$POSTGRES_PASSWORD"   pg_dump   -U "$POSTGRES_USER"   -d "$POSTGRES_DB"   --data-only   --no-owner   --no-privileges   --inserts   --column-inserts   > "$TMP_DATA"
+PGPASSWORD="$POSTGRES_PASSWORD" \
+  pg_dump \
+  -h "${POSTGRES_HOST:-db}" \
+  -p "${POSTGRES_PORT:-5432}" \
+  -U "$POSTGRES_USER" \
+  -d "$POSTGRES_DB" \
+  --data-only \
+  --no-owner \
+  --no-privileges \
+  --inserts \
+  --column-inserts \
+  > "$TMP_DATA"
 
-cat > "$DATA_FILE" <<EOF
+cat > "$DATA_FILE" <<EOF_DATA
 -- ============================================================================
 -- ${POSTGRES_DB} data
 -- ============================================================================
@@ -94,17 +114,17 @@ BEGIN;
 SET client_encoding = 'UTF8';
 SET session_replication_role = replica;
 
-EOF
+EOF_DATA
 cat "$TMP_DATA" >> "$DATA_FILE"
-cat >> "$DATA_FILE" <<'EOF'
+cat >> "$DATA_FILE" <<'EOF_DATA_FOOTER'
 
 SET session_replication_role = DEFAULT;
 COMMIT;
-EOF
+EOF_DATA_FOOTER
 
 echo "  ✓ Created $(basename "$DATA_FILE")"
 
-cat > "$RESTORE_FILE" <<'EOF'
+cat > "$RESTORE_FILE" <<'EOF_RESTORE'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -115,21 +135,25 @@ ENV_FILE="$PROJECT_ROOT/.env"
 load_env() {
   local env_file="$1"
   while IFS= read -r line || [[ -n "$line" ]]; do
-    line=${line%$''}
+    line=${line%$'\r'}
     [[ -z "$line" ]] && continue
     [[ "$line" =~ ^[[:space:]]*# ]] && continue
-    if [[ "$line" != *=* ]]; then
-      continue
-    fi
+    [[ "$line" != *=* ]] && continue
+
     local key=${line%%=*}
     local value=${line#*=}
-    key=${key//[$'	
- ']}
-    if [[ -z "$key" ]]; then
-      continue
-    fi
+    key=${key//[$'\t\r\n ']}
+    [[ -z "$key" ]] && continue
     export "$key=$value"
   done < "$env_file"
+}
+
+require_command() {
+  local command_name="$1"
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    echo "ERROR: $command_name is not installed. Rebuild the web image after updating the Dockerfile." >&2
+    exit 1
+  fi
 }
 
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -143,14 +167,7 @@ load_env "$ENV_FILE"
 : "${POSTGRES_USER:?POSTGRES_USER must be set in .env}"
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}"
 
-if command -v docker >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker compose)
-elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker-compose)
-else
-  echo "ERROR: docker compose or docker-compose is required to restore init scripts." >&2
-  exit 1
-fi
+require_command psql
 
 SCHEMA_FILE="$SCRIPT_DIR/01-${POSTGRES_DB}_schema.sql"
 DATA_FILE="$SCRIPT_DIR/02-${POSTGRES_DB}_data.sql"
@@ -161,13 +178,25 @@ if [[ ! -f "$SCHEMA_FILE" || ! -f "$DATA_FILE" ]]; then
 fi
 
 echo "Restoring schema from $(basename "$SCHEMA_FILE")..."
-cat "$SCHEMA_FILE" | "${COMPOSE_CMD[@]}" exec -T db env PGPASSWORD="$POSTGRES_PASSWORD"   psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+PGPASSWORD="$POSTGRES_PASSWORD" \
+  psql -v ON_ERROR_STOP=1 \
+  -h "${POSTGRES_HOST:-db}" \
+  -p "${POSTGRES_PORT:-5432}" \
+  -U "$POSTGRES_USER" \
+  -d "$POSTGRES_DB" \
+  < "$SCHEMA_FILE"
 
 echo "Restoring data from $(basename "$DATA_FILE")..."
-cat "$DATA_FILE" | "${COMPOSE_CMD[@]}" exec -T db env PGPASSWORD="$POSTGRES_PASSWORD"   psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+PGPASSWORD="$POSTGRES_PASSWORD" \
+  psql -v ON_ERROR_STOP=1 \
+  -h "${POSTGRES_HOST:-db}" \
+  -p "${POSTGRES_PORT:-5432}" \
+  -U "$POSTGRES_USER" \
+  -d "$POSTGRES_DB" \
+  < "$DATA_FILE"
 
 echo "Restore complete."
-EOF
+EOF_RESTORE
 
 chmod +x "$RESTORE_FILE"
 
@@ -180,10 +209,8 @@ echo "  - $SCHEMA_FILE"
 echo "  - $DATA_FILE"
 echo "  - $RESTORE_FILE"
 echo
-
 echo "To regenerate from the running database:"
 echo "  ./dev_utils/generate_init_scripts"
 echo
-
-echo "To restore on a new machine after the stack is up:"
+echo "To restore from inside the web container after the stack is up:"
 echo "  ./init-scripts/restore_${POSTGRES_DB}.sh"

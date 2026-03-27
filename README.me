@@ -3,7 +3,8 @@
 ## Getting up and running
 
 - `cp .env.example .env`
-- Correct ports if necessary in this file
+- Correct ports if necessary in `.env`
 - `docker compose up -d`
-- Wait a couple minutes until your images are all downloaded and built. 
-- `docker compose exec web restore_database`
+- Wait until the containers are healthy and PostgreSQL is ready.
+- Generate fresh init scripts from the current database state with `./dev_utils/generate_init_scripts`
+- Restore those scripts into the running database with `./init-scripts/restore_appdb.sh`
