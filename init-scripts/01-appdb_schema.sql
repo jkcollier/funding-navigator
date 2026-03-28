@@ -9,7 +9,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ZEi3jFCpugzjFYnmwwJH06xB5wn5MIyxiSdemMF0pBjiukmy1c3YAfectdqpOf4
+\restrict KsfxvA2DRBe2Wi4JEtg3FvvaQHHnipBFmfgOBE8hPdZDMZUnrCq9TvqinydxxTp
 
 -- Dumped from database version 17.9 (Debian 17.9-1.pgdg13+1)
 -- Dumped by pg_dump version 17.9 (Debian 17.9-0+deb13u1)
@@ -33,6 +33,9 @@ ALTER TABLE IF EXISTS ONLY public.organization_attachment_types DROP CONSTRAINT 
 ALTER TABLE IF EXISTS ONLY public.organization_attachment_types DROP CONSTRAINT IF EXISTS organization_attachment_types_new_attachment_type_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.organization_applicant_types DROP CONSTRAINT IF EXISTS organization_applicant_types_new_org_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.organization_applicant_types DROP CONSTRAINT IF EXISTS organization_applicant_types_new_applicant_type_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.foundation_vectors DROP CONSTRAINT IF EXISTS foundation_vectors_org_id_e87554a6_fk_organizations_id;
+ALTER TABLE IF EXISTS ONLY public.foundation_matches DROP CONSTRAINT IF EXISTS foundation_matches_org_id_a4c68809_fk_organizations_id;
+ALTER TABLE IF EXISTS ONLY public.foundation_matches DROP CONSTRAINT IF EXISTS foundation_matches_application_id_c0565987_fk_applicati;
 ALTER TABLE IF EXISTS ONLY public.django_admin_log DROP CONSTRAINT IF EXISTS django_admin_log_user_id_c564eba6_fk_auth_user_id;
 ALTER TABLE IF EXISTS ONLY public.django_admin_log DROP CONSTRAINT IF EXISTS django_admin_log_content_type_id_c4bce8eb_fk_django_co;
 ALTER TABLE IF EXISTS ONLY public.auth_user_user_permissions DROP CONSTRAINT IF EXISTS auth_user_user_permissions_user_id_a95ead1b_fk_auth_user_id;
@@ -42,6 +45,8 @@ ALTER TABLE IF EXISTS ONLY public.auth_user_groups DROP CONSTRAINT IF EXISTS aut
 ALTER TABLE IF EXISTS ONLY public.auth_permission DROP CONSTRAINT IF EXISTS auth_permission_content_type_id_2f476e4b_fk_django_co;
 ALTER TABLE IF EXISTS ONLY public.auth_group_permissions DROP CONSTRAINT IF EXISTS auth_group_permissions_group_id_b120cbf9_fk_auth_group_id;
 ALTER TABLE IF EXISTS ONLY public.auth_group_permissions DROP CONSTRAINT IF EXISTS auth_group_permissio_permission_id_84c5c92e_fk_auth_perm;
+DROP INDEX IF EXISTS public.foundation_matches_org_id_a4c68809;
+DROP INDEX IF EXISTS public.foundation_matches_application_id_c0565987;
 DROP INDEX IF EXISTS public.django_session_session_key_c0390e0f_like;
 DROP INDEX IF EXISTS public.django_session_expire_date_a5c62663;
 DROP INDEX IF EXISTS public.django_admin_log_user_id_c564eba6;
@@ -66,6 +71,10 @@ ALTER TABLE IF EXISTS ONLY public.organization_attachment_types DROP CONSTRAINT 
 ALTER TABLE IF EXISTS ONLY public.organization_attachment_types DROP CONSTRAINT IF EXISTS organization_attachment_types_new_org_id_attachment_type_id_key;
 ALTER TABLE IF EXISTS ONLY public.organization_applicant_types DROP CONSTRAINT IF EXISTS organization_applicant_types_new_pkey;
 ALTER TABLE IF EXISTS ONLY public.organization_applicant_types DROP CONSTRAINT IF EXISTS organization_applicant_types_new_org_id_applicant_type_id_key;
+ALTER TABLE IF EXISTS ONLY public.foundation_vectors DROP CONSTRAINT IF EXISTS foundation_vectors_pkey;
+ALTER TABLE IF EXISTS ONLY public.foundation_vectors DROP CONSTRAINT IF EXISTS foundation_vectors_org_id_key;
+ALTER TABLE IF EXISTS ONLY public.foundation_matches DROP CONSTRAINT IF EXISTS foundation_matches_pkey;
+ALTER TABLE IF EXISTS ONLY public.foundation_matches DROP CONSTRAINT IF EXISTS foundation_matches_application_org_unique;
 ALTER TABLE IF EXISTS ONLY public.django_session DROP CONSTRAINT IF EXISTS django_session_pkey;
 ALTER TABLE IF EXISTS ONLY public.django_migrations DROP CONSTRAINT IF EXISTS django_migrations_pkey;
 ALTER TABLE IF EXISTS ONLY public.django_content_type DROP CONSTRAINT IF EXISTS django_content_type_pkey;
@@ -85,6 +94,7 @@ ALTER TABLE IF EXISTS ONLY public.auth_group_permissions DROP CONSTRAINT IF EXIS
 ALTER TABLE IF EXISTS ONLY public.auth_group DROP CONSTRAINT IF EXISTS auth_group_name_key;
 ALTER TABLE IF EXISTS ONLY public.attachment_types DROP CONSTRAINT IF EXISTS attachment_types_pkey;
 ALTER TABLE IF EXISTS ONLY public.attachment_types DROP CONSTRAINT IF EXISTS attachment_types_label_key;
+ALTER TABLE IF EXISTS ONLY public.application_sessions DROP CONSTRAINT IF EXISTS application_sessions_pkey;
 ALTER TABLE IF EXISTS ONLY public.applicant_types DROP CONSTRAINT IF EXISTS applicant_types_pkey;
 ALTER TABLE IF EXISTS ONLY public.applicant_types DROP CONSTRAINT IF EXISTS applicant_types_label_key;
 ALTER TABLE IF EXISTS public.target_groups ALTER COLUMN id DROP DEFAULT;
@@ -103,6 +113,8 @@ DROP SEQUENCE IF EXISTS public.organization_attachment_types_new_id_seq;
 DROP TABLE IF EXISTS public.organization_attachment_types;
 DROP SEQUENCE IF EXISTS public.organization_applicant_types_new_id_seq;
 DROP TABLE IF EXISTS public.organization_applicant_types;
+DROP TABLE IF EXISTS public.foundation_vectors;
+DROP TABLE IF EXISTS public.foundation_matches;
 DROP TABLE IF EXISTS public.django_session;
 DROP TABLE IF EXISTS public.django_migrations;
 DROP TABLE IF EXISTS public.django_content_type;
@@ -114,6 +126,7 @@ DROP TABLE IF EXISTS public.auth_permission;
 DROP TABLE IF EXISTS public.auth_group_permissions;
 DROP TABLE IF EXISTS public.auth_group;
 DROP TABLE IF EXISTS public.attachment_types;
+DROP TABLE IF EXISTS public.application_sessions;
 DROP TABLE IF EXISTS public.applicant_types;
 SET default_tablespace = '';
 
@@ -126,6 +139,38 @@ SET default_table_access_method = heap;
 CREATE TABLE public.applicant_types (
     applicant_type_id text NOT NULL,
     label text NOT NULL
+);
+
+
+--
+-- Name: application_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.application_sessions (
+    id bigint NOT NULL,
+    status character varying(20) NOT NULL,
+    applicant_kind character varying(20),
+    field_1 text,
+    field_2 text,
+    field_3 text,
+    layer1_passed_org_ids jsonb,
+    application_vector double precision[],
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: application_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.application_sessions ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.application_sessions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
 );
 
 
@@ -391,6 +436,60 @@ CREATE TABLE public.django_session (
 
 
 --
+-- Name: foundation_matches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.foundation_matches (
+    id bigint NOT NULL,
+    similarity_score double precision NOT NULL,
+    match_level character varying(10) NOT NULL,
+    application_id bigint NOT NULL,
+    org_id integer NOT NULL
+);
+
+
+--
+-- Name: foundation_matches_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.foundation_matches ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.foundation_matches_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: foundation_vectors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.foundation_vectors (
+    id bigint NOT NULL,
+    vector double precision[] NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    org_id integer NOT NULL
+);
+
+
+--
+-- Name: foundation_vectors_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.foundation_vectors ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.foundation_vectors_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: organization_applicant_types; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -635,6 +734,14 @@ ALTER TABLE ONLY public.applicant_types
 
 
 --
+-- Name: application_sessions application_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.application_sessions
+    ADD CONSTRAINT application_sessions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: attachment_types attachment_types_label_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -784,6 +891,38 @@ ALTER TABLE ONLY public.django_migrations
 
 ALTER TABLE ONLY public.django_session
     ADD CONSTRAINT django_session_pkey PRIMARY KEY (session_key);
+
+
+--
+-- Name: foundation_matches foundation_matches_application_org_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.foundation_matches
+    ADD CONSTRAINT foundation_matches_application_org_unique UNIQUE (application_id, org_id);
+
+
+--
+-- Name: foundation_matches foundation_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.foundation_matches
+    ADD CONSTRAINT foundation_matches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: foundation_vectors foundation_vectors_org_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.foundation_vectors
+    ADD CONSTRAINT foundation_vectors_org_id_key UNIQUE (org_id);
+
+
+--
+-- Name: foundation_vectors foundation_vectors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.foundation_vectors
+    ADD CONSTRAINT foundation_vectors_pkey PRIMARY KEY (id);
 
 
 --
@@ -966,6 +1105,20 @@ CREATE INDEX django_session_session_key_c0390e0f_like ON public.django_session U
 
 
 --
+-- Name: foundation_matches_application_id_c0565987; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX foundation_matches_application_id_c0565987 ON public.foundation_matches USING btree (application_id);
+
+
+--
+-- Name: foundation_matches_org_id_a4c68809; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX foundation_matches_org_id_a4c68809 ON public.foundation_matches USING btree (org_id);
+
+
+--
 -- Name: auth_group_permissions auth_group_permissio_permission_id_84c5c92e_fk_auth_perm; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1038,6 +1191,30 @@ ALTER TABLE ONLY public.django_admin_log
 
 
 --
+-- Name: foundation_matches foundation_matches_application_id_c0565987_fk_applicati; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.foundation_matches
+    ADD CONSTRAINT foundation_matches_application_id_c0565987_fk_applicati FOREIGN KEY (application_id) REFERENCES public.application_sessions(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: foundation_matches foundation_matches_org_id_a4c68809_fk_organizations_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.foundation_matches
+    ADD CONSTRAINT foundation_matches_org_id_a4c68809_fk_organizations_id FOREIGN KEY (org_id) REFERENCES public.organizations(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: foundation_vectors foundation_vectors_org_id_e87554a6_fk_organizations_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.foundation_vectors
+    ADD CONSTRAINT foundation_vectors_org_id_e87554a6_fk_organizations_id FOREIGN KEY (org_id) REFERENCES public.organizations(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: organization_applicant_types organization_applicant_types_new_applicant_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1097,5 +1274,5 @@ ALTER TABLE ONLY public.overview_derived
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ZEi3jFCpugzjFYnmwwJH06xB5wn5MIyxiSdemMF0pBjiukmy1c3YAfectdqpOf4
+\unrestrict KsfxvA2DRBe2Wi4JEtg3FvvaQHHnipBFmfgOBE8hPdZDMZUnrCq9TvqinydxxTp
 

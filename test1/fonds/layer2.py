@@ -14,8 +14,10 @@ Pre-computing foundation vectors:
 """
 
 from __future__ import annotations
-
 from typing import TYPE_CHECKING
+from sentence_transformers import SentenceTransformer
+import numpy as np
+import json
 
 if TYPE_CHECKING:
     from .application_session import ApplicationSessionBuilder
@@ -25,19 +27,23 @@ if TYPE_CHECKING:
 # Embedding stub — replace this body with your model call
 # ---------------------------------------------------------------------------
 
-def embed(text: str) -> list[float]:
-    """Return a fixed-length float vector for *text*.
+# sentence transformers - combined info
 
-    Plug your model in here, for example:
-        from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer("paraphrase-multilingual-mpnet-base-v2")
-        def embed(text: str) -> list[float]:
-            return _model.encode(text).tolist()
-    """
-    raise NotImplementedError(
-        "embed() is not yet implemented. "
-        "Open fonds/layer2.py and replace the stub body with your model."
-    )
+
+
+model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+
+# --- PREPROCESSING (run once, save) ---
+foundation_vectors = np.load('/static/foundation_vectors.npy')
+
+def search(query_text):
+    query_vector = model.encode([query_text])[0]
+
+    from sklearn.metrics.pairwise import cosine_similarity
+    scores = cosine_similarity(query_vector.reshape(1,-1), foundation_vectors)[0]
+
+    ranked = np.argsort(scores)[::-1]
+    return [(foundations[i]['name'], scores[i]) for i in ranked[:10]]
 
 
 # ---------------------------------------------------------------------------
