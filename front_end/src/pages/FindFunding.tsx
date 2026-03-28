@@ -6,41 +6,43 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { zurichUniversities } from "@/data/zurichUniversities";
 import EmergencyBell from "@/components/EmergencyBell";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, SkipForward } from "lucide-react";
+import { ArrowLeft, ArrowRight, SkipForward, CalendarIcon, AlertTriangle, CheckCircle } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
+import { cn } from "@/lib/utils";
 
 type SupportType = "" | "private" | "institution" | "project" | "education";
 
 interface FormData {
-  // Sensitive info
   name: string;
   age: string;
   address: string;
   email: string;
   phone: string;
-  // Support type
   supportType: SupportType;
-  // Private person
   situation: string;
   fundingPurpose: string;
   amountNeeded: string;
   deadline: string;
-  // Institution
   institutionType: string;
   institutionPurpose: string;
   institutionAmount: string;
   institutionDeadline: string;
-  // Project
   projectInstitutionType: string;
   projectDescription: string;
   projectDuration: string;
   projectAmount: string;
-  // Education
   enrolledInSwissUni: string;
   universityName: string;
+  residencyStatus: string;
+  zipCode: string;
 }
 
 const initialFormData: FormData = {
@@ -50,7 +52,19 @@ const initialFormData: FormData = {
   institutionType: "", institutionPurpose: "", institutionAmount: "", institutionDeadline: "",
   projectInstitutionType: "", projectDescription: "", projectDuration: "", projectAmount: "",
   enrolledInSwissUni: "", universityName: "",
+  residencyStatus: "", zipCode: "",
 };
+
+const residencyOptions = [
+  { value: "swiss-citizen", labelEn: "Swiss citizens – Swiss nationals", labelDe: "Schweizer Bürger – Schweizer Staatsangehörige" },
+  { value: "permit-l", labelEn: "Swiss residents Permit L – Short-term residence", labelDe: "Schweizer Aufenthalt Bewilligung L – Kurzaufenthalt" },
+  { value: "permit-b", labelEn: "Swiss residents Permit B – Residence permit", labelDe: "Schweizer Aufenthalt Bewilligung B – Aufenthaltsbewilligung" },
+  { value: "permit-c", labelEn: "Swiss residents Permit C – Settlement permit", labelDe: "Schweizer Aufenthalt Bewilligung C – Niederlassungsbewilligung" },
+  { value: "permit-g", labelEn: "Others Permit G – Cross-border commuter", labelDe: "Andere Bewilligung G – Grenzgänger" },
+  { value: "permit-f", labelEn: "Others Permit F – Provisionally admitted", labelDe: "Andere Bewilligung F – Vorläufig aufgenommen" },
+  { value: "permit-n", labelEn: "Others Permit N – Asylum seeker", labelDe: "Andere Bewilligung N – Asylsuchende" },
+  { value: "other", labelEn: "Others – I am unsure", labelDe: "Andere – Ich bin unsicher" },
+];
 
 export default function FindFunding() {
   const { t } = useLanguage();
@@ -60,14 +74,37 @@ export default function FindFunding() {
 
   const [step, setStep] = useState(1);
   const [data, setData] = useState<FormData>(initialFormData);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [otpDialogOpen, setOtpDialogOpen] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
   const update = (fields: Partial<FormData>) => setData((d) => ({ ...d, ...fields }));
 
-  // Determine steps based on consent + support type
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    if (date) {
+      update({ deadline: date.toISOString() });
+    }
+  };
+
+  const isDeadlineUrgent = selectedDate ? differenceInDays(selectedDate, new Date()) <= 14 && differenceInDays(selectedDate, new Date()) >= 0 : false;
+
+  const handleOtpVerify = () => {
+    if (otpValue.length === 6) {
+      setPhoneVerified(true);
+      setOtpDialogOpen(false);
+    }
+  };
+
   const getSteps = () => {
     const steps: string[] = [];
     if (sensitiveConsent) steps.push("personal-info");
     steps.push("support-type");
+    if (data.supportType === "private" || data.supportType === "education") {
+      steps.push("residency-status");
+    }
+    steps.push("zip-code");
     if (data.supportType === "private") steps.push("private-details");
     else if (data.supportType === "institution") steps.push("institution-details");
     else if (data.supportType === "project") steps.push("project-details");
@@ -84,13 +121,11 @@ export default function FindFunding() {
   const next = () => {
     if (step < totalSteps) setStep(step + 1);
     else {
-      // Save user data for profile page
       localStorage.setItem("fn-user-data", JSON.stringify({ ...data, sensitiveConsent }));
       navigate("/results", { state: { ...data, sensitiveConsent } });
     }
   };
 
-  // Only show skip on personal-info step
   const showSkip = currentStepName === "personal-info";
   const back = () => {
     if (step > 1) setStep(step - 1);
@@ -101,6 +136,8 @@ export default function FindFunding() {
     switch (currentStepName) {
       case "personal-info": return data.name.trim().length > 0;
       case "support-type": return !!data.supportType;
+      case "residency-status": return !!data.residencyStatus;
+      case "zip-code": return true; // optional
       case "private-details": return !!data.situation && !!data.fundingPurpose;
       case "institution-details": return !!data.institutionType && !!data.institutionPurpose;
       case "project-details": return !!data.projectDescription;
@@ -137,6 +174,8 @@ export default function FindFunding() {
                 <CardTitle className="text-xl">
                   {currentStepName === "personal-info" && t("Your Personal Information", "Ihre persönlichen Daten")}
                   {currentStepName === "support-type" && t("What kind of support are you looking for?", "Welche Art von Unterstützung suchen Sie?")}
+                  {currentStepName === "residency-status" && t("What is your residency status?", "Wie ist Ihr Aufenthaltsstatus?")}
+                  {currentStepName === "zip-code" && t("Your ZIP Code", "Ihre Postleitzahl")}
                   {currentStepName === "private-details" && t("Tell us about your situation", "Erzählen Sie uns von Ihrer Situation")}
                   {currentStepName === "institution-details" && t("Institution Details", "Institutionsdetails")}
                   {currentStepName === "project-details" && t("Project Information", "Projektinformationen")}
@@ -146,6 +185,8 @@ export default function FindFunding() {
                 <p className="text-sm text-muted-foreground">
                   {currentStepName === "personal-info" && t("This information helps us provide more accurate matches", "Diese Informationen helfen uns, genauere Ergebnisse zu liefern")}
                   {currentStepName === "support-type" && t("Choose the option that best describes your situation", "Wählen Sie die Option, die Ihre Situation am besten beschreibt")}
+                  {currentStepName === "residency-status" && t("This helps us match you with eligible organizations", "Dies hilft uns, Sie mit berechtigten Organisationen zu matchen")}
+                  {currentStepName === "zip-code" && t("Some organizations only help people from certain municipalities. Please enter your ZIP code.", "Einige Organisationen helfen nur Personen aus bestimmten Gemeinden. Bitte geben Sie Ihre Postleitzahl ein.")}
                   {currentStepName === "private-details" && t("Provide details so we can find the right funding for you", "Geben Sie Details an, damit wir die richtige Förderung finden")}
                   {currentStepName === "institution-details" && t("Tell us about your institution and the support needed", "Erzählen Sie uns von Ihrer Institution und dem benötigten Support")}
                   {currentStepName === "project-details" && t("Describe your project and its goals", "Beschreiben Sie Ihr Projekt und seine Ziele")}
@@ -160,7 +201,27 @@ export default function FindFunding() {
                     <Input placeholder={t("Age", "Alter")} type="number" value={data.age} onChange={(e) => update({ age: e.target.value })} />
                     <Input placeholder={t("Address", "Adresse")} value={data.address} onChange={(e) => update({ address: e.target.value })} />
                     <Input placeholder={t("Email", "E-Mail")} type="email" value={data.email} onChange={(e) => update({ email: e.target.value })} />
-                    <Input placeholder={t("Phone", "Telefon")} type="tel" value={data.phone} onChange={(e) => update({ phone: e.target.value })} />
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder={t("Phone", "Telefon")}
+                          type="tel"
+                          value={data.phone}
+                          onChange={(e) => { update({ phone: e.target.value }); setPhoneVerified(false); }}
+                          className="flex-1"
+                        />
+                        {data.phone.length >= 8 && !phoneVerified && (
+                          <Button variant="outline" size="sm" onClick={() => setOtpDialogOpen(true)}>
+                            {t("Verify", "Bestätigen")}
+                          </Button>
+                        )}
+                        {phoneVerified && (
+                          <div className="flex items-center text-success">
+                            <CheckCircle className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -188,6 +249,35 @@ export default function FindFunding() {
                   </div>
                 )}
 
+                {currentStepName === "residency-status" && (
+                  <div className="space-y-3">
+                    {residencyOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => update({ residencyStatus: opt.value })}
+                        className={`w-full p-3 rounded-lg border text-left transition-all hover:shadow-sm ${
+                          data.residencyStatus === opt.value
+                            ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                            : "border-border hover:border-primary/30"
+                        }`}
+                      >
+                        <p className="text-sm">{t(opt.labelEn, opt.labelDe)}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {currentStepName === "zip-code" && (
+                  <div className="space-y-3">
+                    <Input
+                      placeholder={t("e.g., 8001", "z.B. 8001")}
+                      value={data.zipCode}
+                      onChange={(e) => update({ zipCode: e.target.value })}
+                      maxLength={4}
+                    />
+                  </div>
+                )}
+
                 {currentStepName === "private-details" && (
                   <div className="space-y-3">
                     <Select value={data.situation} onValueChange={(v) => update({ situation: v })}>
@@ -204,17 +294,54 @@ export default function FindFunding() {
                       value={data.fundingPurpose}
                       onChange={(e) => update({ fundingPurpose: e.target.value })}
                     />
-                    <Input
-                      placeholder={t("Amount needed (CHF)", "Benötigter Betrag (CHF)")}
-                      type="number"
-                      value={data.amountNeeded}
-                      onChange={(e) => update({ amountNeeded: e.target.value })}
-                    />
-                    <Input
-                      placeholder={t("By when? (e.g., June 2026)", "Bis wann? (z.B. Juni 2026)")}
-                      value={data.deadline}
-                      onChange={(e) => update({ deadline: e.target.value })}
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        placeholder={t("Amount needed (e.g., 5,000 CHF)", "Benötigter Betrag (z.B. 5'000 CHF)")}
+                        type="number"
+                        value={data.amountNeeded}
+                        onChange={(e) => update({ amountNeeded: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">{t("Please specify amount in Swiss Francs (CHF)", "Bitte Betrag in Schweizer Franken (CHF) angeben")}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t("By when do you need the money?", "Bis wann brauchen Sie das Geld?")}</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDate ? format(selectedDate, "PPP") : t("Pick a date", "Datum wählen")}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleDateSelect}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {isDeadlineUrgent && (
+                        <Card className="border-destructive bg-destructive/5">
+                          <CardContent className="p-3 flex items-start gap-2">
+                            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-destructive">
+                                {t("Your request appears urgent.", "Ihre Anfrage scheint dringend zu sein.")}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {t(
+                                  "Please click the emergency bell and contact an organization immediately. We have linked organizations you can reach out to.",
+                                  "Bitte klicken Sie auf die Notfallglocke und kontaktieren Sie sofort eine Organisation. Wir haben Organisationen verlinkt, die Sie kontaktieren können."
+                                )}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -230,16 +357,19 @@ export default function FindFunding() {
                       </SelectContent>
                     </Select>
                     <Textarea
-                      placeholder={t("Purpose of funding (e.g., 'My beneficiary wants to pay for their daughter's surgery')", "Zweck der Förderung (z.B. 'Mein Begünstigter möchte die Operation seiner Tochter bezahlen')")}
+                      placeholder={t("Purpose of funding", "Zweck der Förderung")}
                       value={data.institutionPurpose}
                       onChange={(e) => update({ institutionPurpose: e.target.value })}
                     />
-                    <Input
-                      placeholder={t("Amount needed (CHF)", "Benötigter Betrag (CHF)")}
-                      type="number"
-                      value={data.institutionAmount}
-                      onChange={(e) => update({ institutionAmount: e.target.value })}
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        placeholder={t("Amount needed (e.g., 5,000 CHF)", "Benötigter Betrag (z.B. 5'000 CHF)")}
+                        type="number"
+                        value={data.institutionAmount}
+                        onChange={(e) => update({ institutionAmount: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">{t("Please specify amount in Swiss Francs (CHF)", "Bitte Betrag in Schweizer Franken (CHF) angeben")}</p>
+                    </div>
                     <Input
                       placeholder={t("By when? (e.g., June 2026)", "Bis wann? (z.B. Juni 2026)")}
                       value={data.institutionDeadline}
@@ -270,12 +400,15 @@ export default function FindFunding() {
                       value={data.projectDuration}
                       onChange={(e) => update({ projectDuration: e.target.value })}
                     />
-                    <Input
-                      placeholder={t("Amount needed (CHF)", "Benötigter Betrag (CHF)")}
-                      type="number"
-                      value={data.projectAmount}
-                      onChange={(e) => update({ projectAmount: e.target.value })}
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        placeholder={t("Amount needed (e.g., 5,000 CHF)", "Benötigter Betrag (z.B. 5'000 CHF)")}
+                        type="number"
+                        value={data.projectAmount}
+                        onChange={(e) => update({ projectAmount: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">{t("Please specify amount in Swiss Francs (CHF)", "Bitte Betrag in Schweizer Franken (CHF) angeben")}</p>
+                    </div>
                   </div>
                 )}
 
@@ -302,8 +435,16 @@ export default function FindFunding() {
                 )}
 
                 {currentStepName === "review" && (
-                  <div className="text-center py-4">
-                    <div className="text-4xl mb-4">🎯</div>
+                  <div className="text-center py-4 space-y-4">
+                    <div className="text-4xl mb-2">🎯</div>
+                    <Card className="bg-accent/10 border-accent/30">
+                      <CardContent className="p-4 text-sm text-muted-foreground">
+                        {t(
+                          "Foundations receive many funding requests. Please complete this form carefully and accurately so foundations are not overwhelmed.",
+                          "Stiftungen erhalten viele Förderanträge. Bitte füllen Sie dieses Formular sorgfältig und korrekt aus, damit Stiftungen nicht überlastet werden."
+                        )}
+                      </CardContent>
+                    </Card>
                     <p className="text-muted-foreground">
                       {t(
                         "We'll analyze your answers and match you with the best funding options in Zürich.",
@@ -336,6 +477,35 @@ export default function FindFunding() {
           </div>
         </div>
       </div>
+
+      {/* OTP Verification Dialog */}
+      <Dialog open={otpDialogOpen} onOpenChange={setOtpDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("Verify Phone Number", "Telefonnummer bestätigen")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t("Enter the 6-digit code sent to your phone", "Geben Sie den 6-stelligen Code ein, der an Ihr Telefon gesendet wurde")}
+            </p>
+            <div className="flex justify-center">
+              <InputOTP maxLength={6} value={otpValue} onChange={setOtpValue}>
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+            <Button onClick={handleOtpVerify} disabled={otpValue.length < 6} className="w-full">
+              {t("Verify", "Bestätigen")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

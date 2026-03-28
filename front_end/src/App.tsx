@@ -11,6 +11,8 @@ import RequireFunding from "./pages/RequireFunding";
 import FindFunding from "./pages/FindFunding";
 import Results from "./pages/Results";
 import OrganizationDetail from "./pages/OrganizationDetail";
+import ApplicationPreview from "./pages/ApplicationPreview";
+import ApplicationConfirm from "./pages/ApplicationConfirm";
 import DownloadConfirmation from "./pages/DownloadConfirmation";
 import Emergency from "./pages/Emergency";
 import About from "./pages/About";
@@ -39,6 +41,8 @@ const App = () => (
                 <Route path="/find-funding" element={<FindFunding />} />
                 <Route path="/results" element={<Results />} />
                 <Route path="/organization/:id" element={<OrganizationDetail />} />
+                <Route path="/application-preview/:id" element={<ApplicationPreview />} />
+                <Route path="/application-confirm/:id" element={<ApplicationConfirm />} />
                 <Route path="/download-confirmation" element={<DownloadConfirmation />} />
                 <Route path="/emergency" element={<Emergency />} />
                 <Route path="/about" element={<About />} />

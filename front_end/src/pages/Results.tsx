@@ -3,15 +3,15 @@ import { useLocation, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { matchFunding, QuestionnaireData } from "@/services/matchingEngine";
-import { ArrowLeft, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { matchFunding, QuestionnaireData, getTagColor } from "@/services/matchingEngine";
+import { translateField, translateList } from "@/services/translationHelper";
+import { ArrowLeft, ExternalLink, ChevronDown, ChevronUp, MapPin, Phone, Mail, Globe, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import EmergencyBell from "@/components/EmergencyBell";
 
 export default function Results() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const data = location.state as QuestionnaireData | undefined;
@@ -28,18 +28,6 @@ export default function Results() {
     );
   }
 
-  const getCategoryLabels = (f: any) => {
-    const labels: string[] = [];
-    if (f.jugendFamilie) labels.push(t("Youth & Family", "Jugend & Familie"));
-    if (f.aeltereMenschen) labels.push(t("Elderly", "Ältere Menschen"));
-    if (f.behinderungen) labels.push(t("Disabilities", "Behinderungen"));
-    if (f.gesundheit) labels.push(t("Health", "Gesundheit"));
-    if (f.migration) labels.push(t("Migration", "Migration"));
-    if (f.ausbildung) labels.push(t("Education", "Ausbildung"));
-    if (f.armut) labels.push(t("Poverty", "Armut"));
-    return labels;
-  };
-
   return (
     <div className="py-8">
       <EmergencyBell />
@@ -48,13 +36,24 @@ export default function Results() {
           <div>
             <h1 className="text-2xl font-bold">{t("Your Funding Matches", "Ihre Förder-Matches")}</h1>
             <p className="text-muted-foreground text-sm">
-              {results.length} {t("results found in Zürich", "Ergebnisse in Zürich gefunden")}
+              {results.length} {t("results found", "Ergebnisse gefunden")}
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" /> {t("Back", "Zurück")}
           </Button>
         </div>
+
+        <Card className="bg-accent/10 border-accent/30 mb-4">
+          <CardContent className="p-4">
+            <p className="text-sm">
+              {t(
+                "Foundations receive many funding requests. Please complete your application carefully and accurately so foundations are not overwhelmed.",
+                "Stiftungen erhalten viele Förderanfragen. Bitte füllen Sie Ihre Bewerbung sorgfältig und genau aus, damit die Stiftungen nicht überlastet werden."
+              )}
+            </p>
+          </CardContent>
+        </Card>
 
         <div className="space-y-4">
           {results.length === 0 ? (
@@ -64,42 +63,43 @@ export default function Results() {
           ) : (
             results.map((r) => {
               const isExpanded = expandedId === r.foundation.id;
-              const categories = getCategoryLabels(r.foundation);
+              const f = r.foundation;
+              const zielgruppe = translateList(f.zielgruppe, language).slice(0, 4);
               return (
                 <motion.div
-                  key={r.foundation.id}
+                  key={f.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                 >
                   <Card
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      isExpanded ? "ring-2 ring-primary/20 shadow-md" : ""
-                    }`}
-                    onClick={() => setExpandedId(isExpanded ? null : r.foundation.id)}
+                    className={`cursor-pointer transition-all hover:shadow-md ${isExpanded ? "ring-2 ring-primary/20 shadow-md" : ""}`}
+                    onClick={() => setExpandedId(isExpanded ? null : f.id)}
                   >
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg">{r.foundation.name}</CardTitle>
+                        <CardTitle className="text-lg">{f.name}</CardTitle>
                         <div className="flex items-center gap-2">
-                          <Badge variant={r.score >= 70 ? "default" : r.score >= 40 ? "secondary" : "outline"}>
-                            {r.score}%
-                          </Badge>
+                          <Badge className={getTagColor(r.tag)}>{r.tag}</Badge>
                           {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </div>
                       </div>
-                      <Progress value={r.score} className="h-1.5" />
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-muted-foreground mb-2">{r.foundation.description}</p>
+                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{translateField(f.description, language)}</p>
                       <div className="flex flex-wrap gap-1">
-                        {categories.slice(0, 4).map((c) => (
-                          <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
+                        {zielgruppe.map((z) => (
+                          <Badge key={z} variant="outline" className="text-xs">{z}</Badge>
                         ))}
-                        {categories.length > 4 && (
-                          <Badge variant="outline" className="text-xs">+{categories.length - 4}</Badge>
-                        )}
+                        <Badge variant="secondary" className="text-xs capitalize">{translateField(f.deadline_type, language)}</Badge>
                       </div>
+
+                      {r.foundation.requires_intermediary && (
+                        <div className="flex items-center gap-1 mt-2 text-xs text-amber-600">
+                          <AlertTriangle className="h-3 w-3" />
+                          {t("Requires intermediary (e.g., social worker)", "Erfordert Vermittlung (z.B. Sozialarbeiter)")}
+                        </div>
+                      )}
 
                       {isExpanded && (
                         <motion.div
@@ -108,16 +108,18 @@ export default function Results() {
                           className="mt-4 pt-4 border-t space-y-3"
                         >
                           <div className="text-sm space-y-1">
-                            <p><span className="font-medium">{t("Page in directory", "Seite im Verzeichnis")}:</span> {r.foundation.page}</p>
+                            {f.address && <p className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {f.address}</p>}
+                            {f.phone && <p className="flex items-center gap-1"><Phone className="h-3 w-3" /> {f.phone}</p>}
+                            {f.email && <p className="flex items-center gap-1"><Mail className="h-3 w-3" /> {f.email}</p>}
+                            {f.website && <p className="flex items-center gap-1"><Globe className="h-3 w-3" /> {f.website}</p>}
+                            <p><span className="font-medium">{t("Deadline", "Termin")}:</span> {translateField(f.einreichungstermin || f.deadline_type, language)}</p>
                             <p><span className="font-medium">{t("Why matched", "Warum gematcht")}:</span> {r.reasons.join(" · ")}</p>
-                            {r.foundation.privatpersonen && <Badge variant="secondary" className="text-xs mr-1">{t("Private persons", "Privatpersonen")}</Badge>}
-                            {r.foundation.institutionen && <Badge variant="secondary" className="text-xs">{t("Institutions", "Institutionen")}</Badge>}
                           </div>
                           <Button
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/organization/${r.foundation.id}`, { state: { questionnaireData: data } });
+                              navigate(`/organization/${f.id}`, { state: { questionnaireData: data } });
                             }}
                           >
                             <ExternalLink className="h-3 w-3" /> {t("Proceed", "Weiter")}

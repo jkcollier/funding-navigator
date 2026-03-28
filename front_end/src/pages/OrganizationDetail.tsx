@@ -4,13 +4,13 @@ import { mockFoundations } from "@/data/mockFoundations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ExternalLink, Download, FileText, Mail } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, Mail, ArrowRight, MapPin, Phone, Globe, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
-import { generateApplicationDoc } from "@/services/documentGenerator";
 import { QuestionnaireData } from "@/services/matchingEngine";
+import { translateField, translateList } from "@/services/translationHelper";
 
 export default function OrganizationDetail() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,25 +27,11 @@ export default function OrganizationDetail() {
   }
 
   const f = foundation;
-  const hasExternalApplication = !!f.applicationUrl;
   const alreadyApplied = localStorage.getItem(`applied-${f.id}`) === "true";
+  const beilagen = translateList(f.beilagen, language);
 
-  const handleInternalApply = async () => {
-    await generateApplicationDoc(f, questionnaireData);
-    localStorage.setItem(`applied-${f.id}`, "true");
-    navigate("/download-confirmation", { state: { orgName: f.name, questionnaireData } });
-  };
-
-  const getCategoryLabels = () => {
-    const labels: string[] = [];
-    if (f.jugendFamilie) labels.push(t("Youth & Family", "Jugend & Familie"));
-    if (f.aeltereMenschen) labels.push(t("Elderly", "Ältere Menschen"));
-    if (f.behinderungen) labels.push(t("Disabilities", "Behinderungen"));
-    if (f.gesundheit) labels.push(t("Health", "Gesundheit"));
-    if (f.migration) labels.push(t("Migration", "Migration"));
-    if (f.ausbildung) labels.push(t("Education", "Ausbildung"));
-    if (f.armut) labels.push(t("Poverty", "Armut"));
-    return labels;
+  const handleProceed = () => {
+    navigate(`/application-preview/${f.id}`, { state: { questionnaireData } });
   };
 
   return (
@@ -59,28 +45,58 @@ export default function OrganizationDetail() {
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-2xl">{f.name}</CardTitle>
-              <p className="text-muted-foreground">{f.description}</p>
+              <p className="text-muted-foreground">{translateField(f.description, language)}</p>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <p className="text-sm font-medium mb-1">{t("Page in directory", "Seite im Verzeichnis")}</p>
-                <p className="text-sm text-muted-foreground">{f.page}</p>
+              {/* Contact Info */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium mb-2">{t("Contact Information", "Kontaktinformationen")}</p>
+                {f.address && <p className="text-sm flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" /> {f.address}</p>}
+                {f.phone && <p className="text-sm flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" /> {f.phone}</p>}
+                {f.email && <p className="text-sm flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" /> {f.email}</p>}
+                {f.website && <p className="text-sm flex items-center gap-2"><Globe className="h-4 w-4 text-muted-foreground" /> <a href={f.website.startsWith("http") ? f.website : `https://${f.website}`} target="_blank" rel="noopener noreferrer" className="text-primary underline">{f.website}</a></p>}
               </div>
 
-              <div>
-                <p className="text-sm font-medium mb-2">{t("Categories", "Kategorien")}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {getCategoryLabels().map((c) => <Badge key={c} variant="outline">{c}</Badge>)}
-                  {f.privatpersonen && <Badge variant="secondary">{t("Private persons", "Privatpersonen")}</Badge>}
-                  {f.institutionen && <Badge variant="secondary">{t("Institutions", "Institutionen")}</Badge>}
-                </div>
-              </div>
-
-              {f.requiredDocuments.length > 0 && (
+              {/* Target Group */}
+              {f.zielgruppe && (
                 <div>
-                  <p className="text-sm font-medium mb-2">{t("Required Documents", "Erforderliche Dokumente")}</p>
+                  <p className="text-sm font-medium mb-2">{t("Target Group", "Zielgruppe")}</p>
+                  <p className="text-sm text-muted-foreground">{translateField(f.zielgruppe, language)}</p>
+                </div>
+              )}
+
+              {/* Applicant Type */}
+              <div>
+                <p className="text-sm font-medium mb-2">{t("Applicant Type", "Gesuchstellende")}</p>
+                <Badge variant="secondary" className="capitalize">{f.applicant_type === "both" ? t("Private & Institutions", "Privatpersonen & Institutionen") : f.applicant_type === "private" ? t("Private persons", "Privatpersonen") : t("Institutions", "Institutionen")}</Badge>
+                {f.requires_intermediary && (
+                  <div className="flex items-center gap-1 mt-2 text-sm text-amber-600">
+                    <AlertTriangle className="h-4 w-4" />
+                    {t("Application requires an intermediary (e.g., social worker)", "Bewerbung erfordert eine Vermittlungsperson (z.B. Sozialarbeiter)")}
+                  </div>
+                )}
+              </div>
+
+              {/* Deadline Info */}
+              <div>
+                <p className="text-sm font-medium mb-1">{t("Submission Deadline", "Einreichungstermin")}</p>
+                <p className="text-sm text-muted-foreground">{translateField(f.einreichungstermin, language) || t("Rolling deadline", "Laufend")}</p>
+              </div>
+
+              {/* Where to send */}
+              {f.empfangsstelle && (
+                <div>
+                  <p className="text-sm font-medium mb-1">{t("Where to Submit", "Empfangsstelle")}</p>
+                  <p className="text-sm text-muted-foreground">{translateField(f.empfangsstelle, language)}</p>
+                </div>
+              )}
+
+              {/* Required Attachments */}
+              {beilagen.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium mb-2">{t("Required Attachments", "Erforderliche Beilagen")}</p>
                   <ul className="space-y-1">
-                    {f.requiredDocuments.map((doc) => (
+                    {beilagen.map((doc) => (
                       <li key={doc} className="flex items-center gap-2 text-sm text-muted-foreground">
                         <FileText className="h-3.5 w-3.5" /> {doc}
                       </li>
@@ -89,10 +105,18 @@ export default function OrganizationDetail() {
                 </div>
               )}
 
+              {/* Action buttons */}
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" asChild>
-                  <a href={`mailto:${f.contactEmail}`}><Mail className="h-3 w-3" /> {t("Email", "E-Mail")}</a>
-                </Button>
+                {f.email && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={`mailto:${f.email}`}><Mail className="h-3 w-3" /> {t("Email", "E-Mail")}</a>
+                  </Button>
+                )}
+                {f.website && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={f.website.startsWith("http") ? f.website : `https://${f.website}`} target="_blank" rel="noopener noreferrer"><Globe className="h-3 w-3" /> {t("Website", "Webseite")}</a>
+                  </Button>
+                )}
               </div>
 
               <div className="border-t pt-4">
@@ -100,24 +124,13 @@ export default function OrganizationDetail() {
                   <p className="text-sm text-muted-foreground">
                     {t("You have already applied to this organization.", "Sie haben sich bereits bei dieser Organisation beworben.")}
                   </p>
-                ) : hasExternalApplication ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      {t("This organization requires you to apply through their website.", "Diese Organisation erfordert eine Bewerbung über ihre Website.")}
-                    </p>
-                    <Button asChild>
-                      <a href={f.applicationUrl!} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4" /> {t("Apply on Website", "Auf Website bewerben")}
-                      </a>
-                    </Button>
-                  </div>
                 ) : (
                   <div className="space-y-3">
                     <p className="text-sm text-muted-foreground">
-                      {t("You can generate your application document directly.", "Sie können Ihr Bewerbungsdokument direkt erstellen.")}
+                      {t("Proceed to fill out and review your application.", "Fahren Sie fort, um Ihre Bewerbung auszufüllen und zu überprüfen.")}
                     </p>
-                    <Button onClick={handleInternalApply}>
-                      <Download className="h-4 w-4" /> {t("Download Application Document", "Bewerbungsdokument herunterladen")}
+                    <Button onClick={handleProceed}>
+                      <ArrowRight className="h-4 w-4" /> {t("Proceed", "Weiter")}
                     </Button>
                   </div>
                 )}

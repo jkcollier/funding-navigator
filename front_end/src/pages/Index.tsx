@@ -3,14 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { motion } from "framer-motion";
-import { Search, MapPin, ShieldCheck, Zap, Users, Heart } from "lucide-react";
+import { Search, ShieldCheck, Zap, Users, Heart } from "lucide-react";
 
 export default function Index() {
   const { t } = useLanguage();
 
   const features = [
     { icon: Search, title: t("Smart Matching", "Intelligentes Matching"), desc: t("Answer a few questions and get matched with relevant funding.", "Beantworten Sie einige Fragen und erhalten Sie passende Förderungen.") },
-    { icon: MapPin, title: t("Interactive Map", "Interaktive Karte"), desc: t("Explore funding organizations across all Swiss cantons.", "Entdecken Sie Förderorganisationen in allen Schweizer Kantonen.") },
+    { icon: Users, title: t("Community Support", "Gemeinschaftshilfe"), desc: t("Connect with organizations that support your specific needs.", "Verbinden Sie sich mit Organisationen, die Ihre Bedürfnisse unterstützen.") },
     { icon: ShieldCheck, title: t("Trusted Sources", "Vertrauenswürdige Quellen"), desc: t("All data from verified Swiss foundations and organizations.", "Alle Daten von verifizierten Schweizer Stiftungen.") },
     { icon: Zap, title: t("Emergency Help", "Notfallhilfe"), desc: t("Immediate access to Swiss emergency contacts and hotlines.", "Sofortiger Zugang zu Schweizer Notfallnummern.") },
     { icon: Users, title: t("For Everyone", "Für alle"), desc: t("Individuals, social workers, and NGOs — all welcome.", "Einzelpersonen, Sozialarbeiter und NGOs — alle willkommen.") },
@@ -43,9 +43,6 @@ export default function Index() {
               <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-base font-semibold px-8" asChild>
                 <Link to="/find-funding">{t("Start Matching", "Matching starten")}</Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 text-base" asChild>
-                <Link to="/map">{t("Explore Map", "Karte erkunden")}</Link>
-              </Button>
             </div>
           </motion.div>
         </div>
@@ -55,7 +52,7 @@ export default function Index() {
       <section className="py-16 md:py-24">
         <div className="container">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
-            {t("How FundingNavigator Helps You", "Wie FundingNavigator Ihnen hilft")}
+            {t("How Funding Navigator Helps You", "Wie Funding Navigator Ihnen hilft")}
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f, i) => (

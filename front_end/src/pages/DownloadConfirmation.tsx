@@ -3,7 +3,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { CheckCircle, Download, Home } from "lucide-react";
+import { CheckCircle, Download, ArrowLeft } from "lucide-react";
 
 export default function DownloadConfirmation() {
   const { t } = useLanguage();
@@ -47,7 +47,7 @@ export default function DownloadConfirmation() {
               </Card>
 
               <Button className="w-full" onClick={() => navigate("/results", { state: questionnaireData })}>
-                <Home className="h-4 w-4" /> {t("Back to Results", "Zurück zu Ergebnissen")}
+                <ArrowLeft className="h-4 w-4" /> {t("Back to Results", "Zurück zu Ergebnissen")}
               </Button>
             </CardContent>
           </Card>

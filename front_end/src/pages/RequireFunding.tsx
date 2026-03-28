@@ -120,6 +120,12 @@ export default function RequireFunding() {
                       "Um Ihnen die genauesten Fördermöglichkeiten bieten zu können, erfassen wir möglicherweise persönliche Daten wie Name, E-Mail, Telefonnummer und Adresse. Diese Daten werden ausschliesslich für das Matching verwendet und nicht an Dritte weitergegeben."
                     )}
                   </p>
+                  <p className="text-sm font-medium text-destructive">
+                    {t(
+                      "Sharing your information is completely optional.",
+                      "Die Weitergabe Ihrer Informationen ist völlig freiwillig."
+                    )}
+                  </p>
                   <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border hover:bg-muted transition-colors">
                     <Checkbox
                       checked={consentGiven}

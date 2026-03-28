@@ -1,22 +1,10 @@
 import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-  AlignmentType, BorderStyle, WidthType, ShadingType, HeadingLevel, PageBreak
+  AlignmentType, BorderStyle, WidthType, ShadingType, HeadingLevel
 } from "docx";
 import { saveAs } from "file-saver";
 import { Foundation } from "@/data/mockFoundations";
 import { QuestionnaireData } from "@/services/matchingEngine";
-
-function getCategoryLabels(f: Foundation): string[] {
-  const labels: string[] = [];
-  if (f.jugendFamilie) labels.push("Youth & Family");
-  if (f.aeltereMenschen) labels.push("Elderly");
-  if (f.behinderungen) labels.push("Disabilities");
-  if (f.gesundheit) labels.push("Health");
-  if (f.migration) labels.push("Migration");
-  if (f.ausbildung) labels.push("Education");
-  if (f.armut) labels.push("Poverty");
-  return labels;
-}
 
 function getUserData(): Record<string, string> {
   try {
@@ -61,10 +49,8 @@ export async function generateApplicationDoc(foundation: Foundation, questionnai
   const deadline = q.deadline || q.institutionDeadline || u.deadline || "";
   const duration = q.projectDuration || u.projectDuration || "N/A";
   const situation = q.situation || u.situation || "";
-  const categories = getCategoryLabels(foundation).join(", ") || "General Support";
-  const benefitDescription = fundingPurpose
-    ? `address my needs related to ${fundingPurpose}`
-    : "improve my current situation and work towards stability";
+  const categories = foundation.zielgruppe || "General Support";
+  const beilagen = foundation.beilagen ? foundation.beilagen.split(/[,;]/).map(s => s.trim()).filter(Boolean) : [];
 
   const doc = new Document({
     styles: {
@@ -93,11 +79,11 @@ export async function generateApplicationDoc(foundation: Foundation, questionnai
           width: { size: 9360, type: WidthType.DXA },
           columnWidths: [4000, 5360],
           rows: [
-            infoRow("Full Name [AUTO-FILLED]", fullName),
-            infoRow("Email Address [AUTO-FILLED]", email),
-            infoRow("Phone Number [AUTO-FILLED]", phone),
-            infoRow("Address [AUTO-FILLED]", address),
-            infoRow("Applicant Type [AUTO-FILLED]", applicantType),
+            infoRow("Full Name", fullName),
+            infoRow("Email Address", email),
+            infoRow("Phone Number", phone),
+            infoRow("Address", address),
+            infoRow("Applicant Type", applicantType),
           ],
         }),
 
@@ -107,10 +93,10 @@ export async function generateApplicationDoc(foundation: Foundation, questionnai
           width: { size: 9360, type: WidthType.DXA },
           columnWidths: [4000, 5360],
           rows: [
-            infoRow("Purpose of Funding [AUTO-FILLED]", fundingPurpose),
-            infoRow("Amount Requested [AUTO-FILLED]", amount),
-            infoRow("Deadline [AUTO-FILLED]", deadline),
-            infoRow("Project Duration [AUTO-FILLED]", duration),
+            infoRow("Purpose of Funding", fundingPurpose),
+            infoRow("Amount Requested", amount),
+            infoRow("Deadline", deadline),
+            infoRow("Project Duration", duration),
           ],
         }),
 
@@ -120,29 +106,36 @@ export async function generateApplicationDoc(foundation: Foundation, questionnai
           width: { size: 9360, type: WidthType.DXA },
           columnWidths: [4000, 5360],
           rows: [
-            infoRow("Organization Name [AUTO-FILLED]", foundation.name),
-            infoRow("Organization Category [AUTO-FILLED]", categories),
+            infoRow("Organization Name", foundation.name),
+            infoRow("Organization Address", foundation.address),
+            infoRow("Organization Email", foundation.email),
+            infoRow("Organization Website", foundation.website),
+            infoRow("Target Group", categories),
+            infoRow("Submission Deadline", foundation.einreichungstermin || foundation.deadline_type),
           ],
         }),
 
-        // Section 4 - Application Letter
-        new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 400 }, children: [new TextRun("4. Application Letter")] }),
+        // Required Attachments
+        ...(beilagen.length > 0 ? [
+          new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 400 }, children: [new TextRun("4. Required Attachments Checklist")] }),
+          ...beilagen.map(b => new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: `☐ ${b}`, size: 22, font: "Arial" })] })),
+        ] : []),
+
+        // Application Letter
+        new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 400 }, children: [new TextRun(`${beilagen.length > 0 ? "5" : "4"}. Application Letter`)] }),
         new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: `Dear ${foundation.name},`, size: 22 })] }),
         new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ size: 22,
           text: `I am writing to respectfully request financial assistance for ${fundingPurpose || "my current needs"}. I am currently in the following situation: ${situation || "facing financial difficulties"}. Due to these circumstances, I require financial support of ${amount || "the appropriate amount"} by ${deadline || "the earliest convenience"}.`,
         })] }),
         new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ size: 22,
-          text: `I believe your organization is a suitable match for my request because of your focus on ${categories} and your commitment to supporting individuals in similar situations. Your assistance would significantly help me address my current challenges.`,
-        })] }),
-        new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ size: 22,
-          text: `Receiving this support would allow me to ${benefitDescription}. This support would have a meaningful impact on my situation and help me move forward towards stability and long-term improvement.`,
+          text: `I believe your organization is a suitable match for my request because of your focus on supporting ${categories}. Your assistance would significantly help me address my current challenges.`,
         })] }),
         new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ size: 22, text: "Thank you very much for considering my application. I would be grateful for any support you can provide." })] }),
         new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ size: 22, text: "Kind regards," })] }),
         new Paragraph({ spacing: { after: 300 }, children: [new TextRun({ size: 22, text: fullName || "_______________" })] }),
 
-        // Section 5 - Declaration
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("5. Declaration")] }),
+        // Declaration
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(`${beilagen.length > 0 ? "6" : "5"}. Declaration`)] }),
         new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ size: 22, text: "I confirm that the information provided is accurate and complete." })] }),
         new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ size: 22, text: "Signature: ______________________________" })] }),
         new Paragraph({ children: [new TextRun({ size: 22, text: `Date: ${new Date().toLocaleDateString("de-CH")}` })] }),
