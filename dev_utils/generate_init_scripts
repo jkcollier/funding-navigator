@@ -30,6 +30,13 @@ require_command() {
   fi
 }
 
+normalize_to_lf() {
+  local target_file="$1"
+  if [[ -f "$target_file" ]]; then
+    sed -i 's/\r$//' "$target_file"
+  fi
+}
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "ERROR: Missing .env at $ENV_FILE" >&2
   exit 1
@@ -85,6 +92,7 @@ cat > "$SCHEMA_FILE" <<EOF_SCHEMA
 
 EOF_SCHEMA
 cat "$TMP_SCHEMA" >> "$SCHEMA_FILE"
+normalize_to_lf "$SCHEMA_FILE"
 
 echo "  ✓ Created $(basename "$SCHEMA_FILE")"
 
@@ -121,6 +129,7 @@ cat >> "$DATA_FILE" <<'EOF_DATA_FOOTER'
 SET session_replication_role = DEFAULT;
 COMMIT;
 EOF_DATA_FOOTER
+normalize_to_lf "$DATA_FILE"
 
 echo "  ✓ Created $(basename "$DATA_FILE")"
 
@@ -197,6 +206,8 @@ PGPASSWORD="$POSTGRES_PASSWORD" \
 
 echo "Restore complete."
 EOF_RESTORE
+
+normalize_to_lf "$RESTORE_FILE"
 
 chmod +x "$RESTORE_FILE"
 

@@ -1,0 +1,42 @@
+<svg width="1200" height="360" viewBox="0 0 1200 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Zürich Sozial banner</title>
+  <desc id="desc">Blue and turquoise branded banner with Zürich Sozial and Forum für das Sozialwesen text.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="180" x2="1200" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0.5" stop-color="#123F78"/>
+      <stop offset="0.5" stop-color="#43B5BF"/>
+      <stop offset="1" stop-color="#78D2D7"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1045 195) rotate(90) scale(180 240)">
+      <stop stop-color="#8FD7EB" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#8FD7EB" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="3" fill="#123F78" fill-opacity="0.5"/>
+    </pattern>
+    <mask id="dotMask">
+      <rect width="1200" height="360" fill="black"/>
+      <circle cx="1045" cy="180" r="250" fill="white"/>
+      <circle cx="1045" cy="180" r="170" fill="black"/>
+      <circle cx="1045" cy="180" r="105" fill="white"/>
+    </mask>
+    <filter id="shadow" x="360" y="52" width="482" height="166" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#123F78" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="360" rx="24" fill="url(#bg)"/>
+  <rect x="0" y="0" width="600" height="360" fill="#123F78"/>
+  <rect x="600" y="0" width="600" height="360" fill="#43B5BF"/>
+  <rect x="600" y="0" width="600" height="360" fill="url(#glow)"/>
+  <g mask="url(#dotMask)">
+    <rect x="600" y="0" width="600" height="360" fill="url(#dots)"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="386" y="80" width="428" height="92" rx="16" fill="#A9E4F4"/>
+    <rect x="404" y="193" width="392" height="56" rx="10" fill="#B9ECF8"/>
+    <text x="430" y="143" fill="#123F78" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="500">Zürich Sozial</text>
+    <text x="438" y="231" fill="#123F78" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="500">Forum für das Sozialwesen</text>
+  </g>
+</svg>
