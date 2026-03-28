@@ -10,4 +10,7 @@ staticfiles/
 media/
 D:\devel\nonprofit\test2>
 pgdata/
+pgdata_dalete/
+pgdata_dalete2/
 temp/
+node_modules/

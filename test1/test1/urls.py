@@ -17,9 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from fonds.views import spa_index
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('i18n/', include('django.conf.urls.i18n')),
     path('', include('fonds.site_urls')),
     path('api/', include('fonds.urls')),
+    # React SPA — serves index.html for the root and any client-side sub-routes
+    path('app/', spa_index),
+    path('app/<path:path>', spa_index),
 ]

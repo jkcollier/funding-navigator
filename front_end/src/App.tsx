@@ -23,6 +23,7 @@ import FAQs from "./pages/FAQs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+const routerBasename = import.meta.env.PROD ? "/app" : undefined;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -30,7 +31,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename={routerBasename}>
           <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-1">

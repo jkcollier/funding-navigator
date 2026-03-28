@@ -1,7 +1,9 @@
 import json
+from pathlib import Path
 
+from django.conf import settings
 from django.db.models import Count, Prefetch, Q
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -22,12 +24,32 @@ from .models import (
 
 
 # ===========================================================================
+# React SPA entry point
+# ===========================================================================
+
+_FRONTEND_INDEX = Path(settings.BASE_DIR).parent / 'front_end' / 'dist' / 'index.html'
+
+
+def spa_index(request, path=''):
+    """Serve the React SPA for every route under /app/.
+
+    The SPA handles its own client-side routing via React Router, so we
+    always return index.html regardless of the subpath.
+    """
+    if not _FRONTEND_INDEX.exists():
+        raise Http404(
+            "Frontend not built — run 'npm run build' inside /app/front_end/ first."
+        )
+    return FileResponse(_FRONTEND_INDEX.open('rb'), content_type='text/html')
+
+
+# ===========================================================================
 # Existing views — unchanged
 # ===========================================================================
 
 @require_GET
 def home_page(request):
-    return render(request, "fonds/home.html")
+    return redirect('/app/')
 
 
 def organizations_page(request):

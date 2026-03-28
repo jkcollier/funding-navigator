@@ -13,9 +13,17 @@ RUN apt-get update \
         procps iproute2 iputils-ping dnsutils netcat-openbsd lsof strace bsdextrautils \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Node.js 22 LTS (needed to build the React frontend)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
+
+# Build the React SPA so Django can serve it at /app/
+RUN cd /app/front_end && npm ci && npm run build
 
 EXPOSE 9000

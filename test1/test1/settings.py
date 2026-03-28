@@ -159,5 +159,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Include the built React SPA assets so collectstatic picks them up
+FRONTEND_DIST_DIR = BASE_DIR.parent / 'front_end' / 'dist'
+STATICFILES_DIRS = [FRONTEND_DIST_DIR] if FRONTEND_DIST_DIR.exists() else []
