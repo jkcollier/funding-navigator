@@ -11,7 +11,6 @@ For Android development: Android Studio (optional)
 Quick Setup
 Clone and install dependencies
 git clone <repository-url>
-cd packsmart-lite
 npm install
 
 Start the development server
