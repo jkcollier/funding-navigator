@@ -8,7 +8,9 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
          build-essential \
-         libpq-dev postgresql-client vim less bash-completion curl wget sqlite3 \
+        libpq-dev postgresql-client vim less bash-completion curl wget sqlite3 \
+        file dos2unix git jq tree ripgrep \
+        procps iproute2 iputils-ping dnsutils netcat-openbsd lsof strace bsdextrautils \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
