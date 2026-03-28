@@ -35,7 +35,15 @@ ALLOWED_HOSTS = [
     for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver,0.0.0.0").split(",")
     if host.strip()
 ]
-
+ 
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "DJANGO_CSRF_TRUSTED_ORIGINS",
+        "https://h4sg.azuris.ch",
+    ).split(",")
+    if origin.strip()
+]
 
 # Application definition
 
