@@ -1,8 +1,11 @@
+import json
+
 from django.db.models import Count, Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 
 from .forms import OrganizationForm
@@ -17,6 +20,10 @@ from .models import (
     TargetGroup,
 )
 
+
+# ===========================================================================
+# Existing views — unchanged
+# ===========================================================================
 
 @require_GET
 def home_page(request):
@@ -266,7 +273,6 @@ def organizations_list(request):
         )
 
     if uncategorized_targets in {"1", "true", "yes"}:
-        # Organizations with no canonical target group links
         queryset = queryset.filter(organization_target_groups__isnull=True)
 
     if applicant_type_id:
@@ -358,3 +364,187 @@ def attachment_types_list(request):
 def overview_list(request):
     rows = list(OverviewDerived.objects.order_by("name").values())
     return JsonResponse({"count": len(rows), "results": rows})
+
+
+# ===========================================================================
+# Grant application pipeline — 5 new endpoints
+# ===========================================================================
+
+def _parse_json_body(request) -> tuple[dict | None, JsonResponse | None]:
+    """Parse request body as JSON. Returns (data, None) or (None, error_response)."""
+    try:
+        return json.loads(request.body), None
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None, JsonResponse({"detail": "Invalid JSON body."}, status=400)
+
+
+@csrf_exempt
+def apply_page1(request):
+    """POST /api/apply/page1/  — collect applicant_kind + field_1."""
+    if request.method != "POST":
+        return JsonResponse({"detail": "Method not allowed."}, status=405)
+
+    data, err = _parse_json_body(request)
+    if err:
+        return err
+
+    from .serializers import Page1Serializer
+    from .application_session import ApplicationSessionBuilder
+
+    serializer = Page1Serializer(data=data)
+    if not serializer.is_valid():
+        return JsonResponse({"errors": serializer.errors}, status=400)
+
+    builder = ApplicationSessionBuilder.from_session(request)
+    builder.update_page1(
+        applicant_kind=serializer.validated_data["applicant_kind"],
+        field_1=serializer.validated_data.get("field_1", ""),
+    )
+    builder.to_session(request)
+
+    return JsonResponse({"status": "ok", "next": "page2"})
+
+
+@csrf_exempt
+def apply_page2(request):
+    """POST /api/apply/page2/  — collect field_2 (project description)."""
+    if request.method != "POST":
+        return JsonResponse({"detail": "Method not allowed."}, status=405)
+
+    data, err = _parse_json_body(request)
+    if err:
+        return err
+
+    from .serializers import Page2Serializer
+    from .application_session import ApplicationSessionBuilder
+
+    serializer = Page2Serializer(data=data)
+    if not serializer.is_valid():
+        return JsonResponse({"errors": serializer.errors}, status=400)
+
+    builder = ApplicationSessionBuilder.from_session(request)
+    if not builder.applicant_kind:
+        return JsonResponse({"detail": "Session missing page 1 data."}, status=400)
+
+    builder.update_page2(field_2=serializer.validated_data["field_2"])
+    builder.to_session(request)
+
+    return JsonResponse({"status": "ok", "next": "page3"})
+
+
+@csrf_exempt
+def apply_page3(request):
+    """POST /api/apply/page3/  — collect field_3 (additional info)."""
+    if request.method != "POST":
+        return JsonResponse({"detail": "Method not allowed."}, status=405)
+
+    data, err = _parse_json_body(request)
+    if err:
+        return err
+
+    from .serializers import Page3Serializer
+    from .application_session import ApplicationSessionBuilder
+
+    serializer = Page3Serializer(data=data)
+    if not serializer.is_valid():
+        return JsonResponse({"errors": serializer.errors}, status=400)
+
+    builder = ApplicationSessionBuilder.from_session(request)
+    if not builder.field_2:
+        return JsonResponse({"detail": "Session missing page 2 data."}, status=400)
+
+    builder.update_page3(field_3=serializer.validated_data.get("field_3", ""))
+    builder.to_session(request)
+
+    return JsonResponse({"status": "ok", "next": "submit"})
+
+
+@csrf_exempt
+def apply_submit(request):
+    """POST /api/apply/submit/  — run full pipeline and return match results."""
+    if request.method != "POST":
+        return JsonResponse({"detail": "Method not allowed."}, status=405)
+
+    from .application_session import ApplicationSessionBuilder
+    from .serializers import MatchResultSerializer
+    from . import layer1, layer2, matcher
+
+    builder = ApplicationSessionBuilder.from_session(request)
+
+    if not builder.applicant_kind:
+        return JsonResponse(
+            {"detail": "Session incomplete. Start from page 1."},
+            status=400,
+        )
+    if not builder.field_2:
+        return JsonResponse(
+            {"detail": "Session missing page 2 data."},
+            status=400,
+        )
+
+    # Step 1 — hard requirement filter
+    layer1.run(builder)
+
+    # Step 2 — embed application text
+    try:
+        layer2.run(builder)
+    except NotImplementedError:
+        return JsonResponse(
+            {"detail": "Embedding model not yet configured. See fonds/layer2.py."},
+            status=503,
+        )
+
+    # Step 3 — persist session to DB
+    application = builder.save()
+
+    # Step 4 — compute similarity scores and persist matches
+    results = matcher.run(builder, application)
+
+    # Clear session data — pipeline is complete
+    builder.clear_session(request)
+
+    serialized = MatchResultSerializer(results, many=True).data
+    return JsonResponse({
+        "session_id": application.pk,
+        "layer1_passed_count": len(builder.layer1_passed_org_ids or []),
+        "matches_count": len(results),
+        "matches": serialized,
+    })
+
+
+@require_GET
+def apply_status(request):
+    """GET /api/apply/status/?session_id=<id>  — fetch persisted match results."""
+    from .models import ApplicationSession, FoundationMatch
+
+    session_id = request.GET.get("session_id")
+    if not session_id:
+        return JsonResponse({"detail": "session_id query parameter required."}, status=400)
+
+    try:
+        application = ApplicationSession.objects.get(pk=session_id)
+    except (ApplicationSession.DoesNotExist, ValueError):
+        return JsonResponse({"detail": _("Not found.")}, status=404)
+
+    matches = (
+        FoundationMatch.objects
+        .filter(application=application)
+        .select_related("org")
+        .order_by("-similarity_score")
+    )
+    results = [
+        {
+            "org_id": m.org_id,
+            "org_name": m.org.name,
+            "similarity_score": m.similarity_score,
+            "match_level": m.match_level,
+        }
+        for m in matches
+    ]
+
+    return JsonResponse({
+        "session_id": application.pk,
+        "status": application.status,
+        "matches_count": len(results),
+        "matches": results,
+    })

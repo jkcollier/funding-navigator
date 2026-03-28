@@ -1,3 +1,14 @@
 Django==6.0.3
-psycopg[binary]==3.2.6
+psycopg[binary]==3.2.10
 gunicorn==23.0.0
+djangorestframework==3.17.1
+asgiref==3.11.1
+Django==6.0.3
+djangorestframework==3.17.1
+environ==1.0
+gunicorn==23.0.0
+packaging==26.0
+psycopg==3.2.10
+psycopg-binary==3.2.10
+python-dotenv==1.2.2
+sqlparse==0.5.5

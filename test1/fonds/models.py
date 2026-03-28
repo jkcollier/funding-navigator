@@ -1,3 +1,4 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -14,6 +15,10 @@ from .target_group_labels import (
     target_group_variants_de,
 )
 
+
+# ---------------------------------------------------------------------------
+# Unmanaged mirrors of the existing PostgreSQL schema
+# ---------------------------------------------------------------------------
 
 class Organization(models.Model):
     id = models.AutoField(primary_key=True)
@@ -240,3 +245,103 @@ class OverviewDerived(models.Model):
     class Meta:
         db_table = "overview_derived"
         managed = False
+
+
+# ---------------------------------------------------------------------------
+# Managed models — created via Django migrations
+# ---------------------------------------------------------------------------
+
+class FoundationVector(models.Model):
+    """Pre-computed embedding vector for a foundation (organization)."""
+
+    org = models.OneToOneField(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="foundation_vector",
+    )
+    vector = ArrayField(models.FloatField())
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "foundation_vectors"
+
+    def __str__(self):
+        return f"FoundationVector(org_id={self.org_id})"
+
+
+class ApplicationSession(models.Model):
+    """Persisted grant application — written to DB on final submission."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", _("Draft")
+        SUBMITTED = "submitted", _("Submitted")
+
+    class ApplicantKind(models.TextChoices):
+        INDIVIDUAL = "individual", _("Individual")
+        INSTITUTION = "institution", _("Institution")
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT,
+    )
+    applicant_kind = models.CharField(
+        max_length=20,
+        choices=ApplicantKind.choices,
+        null=True,
+        blank=True,
+    )
+    # Placeholder fields — rename these when the real form fields are defined
+    field_1 = models.TextField(null=True, blank=True)
+    field_2 = models.TextField(null=True, blank=True)   # feeds vectorization
+    field_3 = models.TextField(null=True, blank=True)
+
+    layer1_passed_org_ids = models.JSONField(null=True, blank=True)
+    application_vector = ArrayField(models.FloatField(), null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "application_sessions"
+
+    def __str__(self):
+        return f"ApplicationSession(id={self.pk}, status={self.status})"
+
+
+class FoundationMatch(models.Model):
+    """Per-(application, organization) match result produced by the matcher."""
+
+    class MatchLevel(models.TextChoices):
+        HIGH = "high", _("High")
+        MEDIUM = "medium", _("Medium")
+        LOW = "low", _("Low")
+
+    application = models.ForeignKey(
+        ApplicationSession,
+        on_delete=models.CASCADE,
+        related_name="matches",
+    )
+    org = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="foundation_matches",
+    )
+    similarity_score = models.FloatField()
+    match_level = models.CharField(max_length=10, choices=MatchLevel.choices)
+
+    class Meta:
+        db_table = "foundation_matches"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["application", "org"],
+                name="foundation_matches_application_org_unique",
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f"FoundationMatch(application={self.application_id}, "
+            f"org={self.org_id}, level={self.match_level})"
+        )
