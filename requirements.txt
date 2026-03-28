@@ -14,7 +14,7 @@ python-dotenv==1.2.2
 sqlparse==0.5.5
 asgiref==3.11.1
 Django==6.0.3
-djangorestframework==3.17.1
+djangorestframework==3.17.1x
 environ==1.0
 gunicorn==23.0.0
 numpy==2.4.3
