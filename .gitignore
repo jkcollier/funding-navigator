@@ -1,16 +1,29 @@
-.DS_Store
+# System/local config files:
+.env
+docker-compose.yml
+.venv/
+
+# Django and Rest API stuff:
+staticfiles/
+media/
+node_modules/
+error_logs/
+
+# Python stuff:
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-db.sqlite3
-.env
-.venv/
-staticfiles/
-media/
-D:\devel\nonprofit\test2>
+
+# DB stuff (namely local Postgres)
 pgdata/
-pgdata_dalete/
-pgdata_dalete2/
+pgdata_dalete*/
+db.sqlite3
+
+# Apple, IDE, and editor stuff:
+.idea/
+.DS_Store
+.*.sw?
+
+# Misc:
 temp/
-node_modules/

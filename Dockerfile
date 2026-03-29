@@ -26,4 +26,10 @@ COPY . /app/
 # Build the React SPA so Django can serve it at /app/
 RUN cd /app/front_end && npm ci && npm run build
 
-EXPOSE 9000
+# Set UTF-8 locale environment variables
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8
+ENV TZ=Europe/Zurich
+
+EXPOSE 8000
