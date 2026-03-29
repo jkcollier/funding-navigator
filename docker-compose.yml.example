@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:17
+    container_name: szsozial_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    container_name: zhsozial_web
+    restart: unless-stopped
+    command: tail -f /dev/null # Replace with the next code chunk if you want a true simulation of the web server:
+    ###     command: >
+    ###       sh -c "
+    ###       python manage.py migrate &&
+    ###       python manage.py collectstatic --noinput &&
+    ###       gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    ###       "
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: zhsozial_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
