@@ -24,6 +24,7 @@ db.sqlite3
 .idea/
 .DS_Store
 .*.sw?
+.devcontainer/
 
 # Misc:
 temp/
