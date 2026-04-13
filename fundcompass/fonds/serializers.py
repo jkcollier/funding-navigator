@@ -3,7 +3,7 @@ serializers.py
 --------------
 DRF serializers for the grant application pipeline.
 
-Requires 'rest_framework' in INSTALLED_APPS (test1/settings.py).
+Requires 'rest_framework' in INSTALLED_APPS (fundcompass/settings.py).
 """
 
 from rest_framework import serializers

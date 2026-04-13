@@ -22,7 +22,7 @@ Generated from: `Fonds und Stiftungsverzeichnis_2024_25.docx`
 - One overview row (`Gertrude von Meissner-Stiftung`) was present in the overview list but its detailed A-Z entry was not recovered cleanly from the DOCX parse. It is included as an organization row with `parse_warning = 'overview_row_only'`.
 - Some contact/address fields are semi-structured. The parser keeps raw fields (`contact_raw`, `raw_sections_jsonb`) so nothing important is lost.
 
-## Django + PostgreSQL import (project in `./test1`)
+## Django + PostgreSQL import (project in `./fundcompass`)
 
 From inside the web container (or any environment where Django can reach Postgres):
 
@@ -53,7 +53,7 @@ Normalization note:
 - Organization-to-target mapping lives in `organization_target_groups`
 - `organization_target_groups` includes `join_id` plus (`org_id`, `target_group_id`)
 
-## API endpoints exposed by Django (`./test1`)
+## API endpoints exposed by Django (`./fundcompass`)
 
 Base path: `/api/`
 

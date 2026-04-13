@@ -6,8 +6,8 @@ foundation_vectors table from the pre-computed .npy file.
 
 Usage:
     python manage.py import_foundation_vectors \
-        --npy test1/fonds/static/fonds/foundation_vectors.npy \
-        --json test1/fonds/static/fonds/fonds_stiftungen_descriptions.json
+        --npy fundcompass/fonds/static/fonds/foundation_vectors.npy \
+        --json fundcompass/fonds/static/fonds/fonds_stiftungen_descriptions.json
 
 The JSON and .npy must be index-aligned (same order, same count).
 After this command succeeds the .npy and JSON are no longer needed at runtime.
