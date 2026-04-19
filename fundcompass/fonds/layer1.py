@@ -29,10 +29,11 @@ def _rule_applicant_kind(
     builder: "ApplicationSessionBuilder",
     overview: "OverviewDerived",
 ) -> bool:
-    """Organisation must accept the applicant's kind (individual / institution)."""
-    if builder.applicant_kind == "individual":
+    """Private/education applicants need individual-accepting orgs.
+    Institution/project applicants need institution-accepting orgs."""
+    if builder.support_type in ("private", "education"):
         return bool(overview.individuals)
-    if builder.applicant_kind == "institution":
+    if builder.support_type in ("institution", "project"):
         return bool(overview.institutions)
     return False
 

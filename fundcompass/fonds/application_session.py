@@ -2,12 +2,10 @@
 application_session.py
 ----------------------
 Accumulates multi-page form state in Django's server-side session store.
-Written to the database only on final submission (ApplicationSessionBuilder.save()).
+Written to the database only on final submission.
 """
-
 from __future__ import annotations
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,63 +17,50 @@ SESSION_KEY = "grant_application_builder"
 
 @dataclass
 class ApplicationSessionBuilder:
-    applicant_kind: str | None = None
-    field_1: str | None = None          # page 1 extra field
-    field_2: str | None = None          # page 2 — project description (feeds vectorization)
-    field_3: str | None = None          # page 3 — additional info
+    support_type: str | None = None       # private | institution | project | education
+    residency_status: str | None = None   # permit-b, swiss-citizen, etc.
+    zip_code: str | None = None
+    description: str | None = None        # main text — feeds vectorization
+    additional_info: str | None = None    # optional extra context
     layer1_passed_org_ids: list[int] | None = None
     application_vector: list[float] | None = None
 
-    # ------------------------------------------------------------------
-    # Page update methods — one per form step
-    # ------------------------------------------------------------------
+    def update_page1(self, support_type: str, residency_status: str = "", zip_code: str = "") -> None:
+        self.support_type = support_type
+        self.residency_status = residency_status
+        self.zip_code = zip_code
 
-    def update_page1(self, applicant_kind: str, field_1: str = "") -> None:
-        self.applicant_kind = applicant_kind
-        self.field_1 = field_1
+    def update_page2(self, description: str) -> None:
+        self.description = description
 
-    def update_page2(self, field_2: str) -> None:
-        self.field_2 = field_2
-
-    def update_page3(self, field_3: str = "") -> None:
-        self.field_3 = field_3
-
-    # ------------------------------------------------------------------
-    # Vectorization input
-    # ------------------------------------------------------------------
+    def update_page3(self, additional_info: str = "") -> None:
+        self.additional_info = additional_info
 
     def to_text_for_vectorization(self) -> str:
-        """Combine page 2 + page 3 text into a single string for embedding."""
-        parts = [p for p in [self.field_2, self.field_3] if p]
-        return " ".join(parts)
-
-    # ------------------------------------------------------------------
-    # DB persistence — called once, at final submission
-    # ------------------------------------------------------------------
+        """Build the query string fed into the embedding model."""
+        parts = [p for p in [self.support_type, self.description, self.additional_info] if p]
+        return " | ".join(parts)
 
     def save(self) -> "ApplicationSession":
         from .models import ApplicationSession
-
         return ApplicationSession.objects.create(
             status=ApplicationSession.Status.SUBMITTED,
-            applicant_kind=self.applicant_kind,
-            field_1=self.field_1,
-            field_2=self.field_2,
-            field_3=self.field_3,
+            support_type=self.support_type,
+            residency_status=self.residency_status,
+            zip_code=self.zip_code,
+            description=self.description,
+            additional_info=self.additional_info,
             layer1_passed_org_ids=self.layer1_passed_org_ids,
             application_vector=self.application_vector,
         )
 
-    # ------------------------------------------------------------------
-    # Django session serialisation
-    # ------------------------------------------------------------------
-
     def to_session(self, request: "HttpRequest") -> None:
         request.session[SESSION_KEY] = {
-            "applicant_kind": self.applicant_kind,
-            "field_1": self.field_1,
-            "field_2": self.field_2,
-            "field_3": self.field_3,
+            "support_type": self.support_type,
+            "residency_status": self.residency_status,
+            "zip_code": self.zip_code,
+            "description": self.description,
+            "additional_info": self.additional_info,
             "layer1_passed_org_ids": self.layer1_passed_org_ids,
             "application_vector": self.application_vector,
         }
@@ -84,10 +69,11 @@ class ApplicationSessionBuilder:
     def from_session(cls, request: "HttpRequest") -> "ApplicationSessionBuilder":
         data = request.session.get(SESSION_KEY, {})
         return cls(
-            applicant_kind=data.get("applicant_kind"),
-            field_1=data.get("field_1"),
-            field_2=data.get("field_2"),
-            field_3=data.get("field_3"),
+            support_type=data.get("support_type"),
+            residency_status=data.get("residency_status"),
+            zip_code=data.get("zip_code"),
+            description=data.get("description"),
+            additional_info=data.get("additional_info"),
             layer1_passed_org_ids=data.get("layer1_passed_org_ids"),
             application_vector=data.get("application_vector"),
         )

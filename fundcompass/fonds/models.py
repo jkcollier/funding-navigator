@@ -271,35 +271,24 @@ class FoundationVector(models.Model):
 
 
 class ApplicationSession(models.Model):
-    """Persisted grant application — written to DB on final submission."""
-
     class Status(models.TextChoices):
         DRAFT = "draft", _("Draft")
         SUBMITTED = "submitted", _("Submitted")
 
-    class ApplicantKind(models.TextChoices):
-        INDIVIDUAL = "individual", _("Individual")
+    class SupportType(models.TextChoices):
+        PRIVATE = "private", _("Private individual")
         INSTITUTION = "institution", _("Institution")
+        PROJECT = "project", _("Project funding")
+        EDUCATION = "education", _("Education funding")
 
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.DRAFT,
-    )
-    applicant_kind = models.CharField(
-        max_length=20,
-        choices=ApplicantKind.choices,
-        null=True,
-        blank=True,
-    )
-    # Placeholder fields — rename these when the real form fields are defined
-    field_1 = models.TextField(null=True, blank=True)
-    field_2 = models.TextField(null=True, blank=True)   # feeds vectorization
-    field_3 = models.TextField(null=True, blank=True)
-
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    support_type = models.CharField(max_length=20, choices=SupportType.choices, null=True, blank=True)
+    residency_status = models.TextField(null=True, blank=True)
+    zip_code = models.TextField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)      # primary vectorization input
+    additional_info = models.TextField(null=True, blank=True)
     layer1_passed_org_ids = models.JSONField(null=True, blank=True)
     application_vector = ArrayField(models.FloatField(), null=True, blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
