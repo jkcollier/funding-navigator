@@ -21,6 +21,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')"
+
+
 COPY . /app/
 
 # Build the React SPA so Django can serve it at /app/

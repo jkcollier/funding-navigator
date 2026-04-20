@@ -473,10 +473,10 @@ def apply_page3(request):
         return JsonResponse({"errors": serializer.errors}, status=400)
 
     builder = ApplicationSessionBuilder.from_session(request)
-    if not builder.field_2:
+    if not builder.description:
         return JsonResponse({"detail": "Session missing page 2 data."}, status=400)
 
-    builder.update_page3(field_3=serializer.validated_data.get("field_3", ""))
+    builder.update_page3(additional_info=serializer.validated_data.get("additional_info", ""))
     builder.to_session(request)
 
     return JsonResponse({"status": "ok", "next": "submit"})
@@ -494,12 +494,12 @@ def apply_submit(request):
 
     builder = ApplicationSessionBuilder.from_session(request)
 
-    if not builder.applicant_kind:
+    if not builder.support_type:
         return JsonResponse(
             {"detail": "Session incomplete. Start from page 1."},
             status=400,
         )
-    if not builder.field_2:
+    if not builder.description:
         return JsonResponse(
             {"detail": "Session missing page 2 data."},
             status=400,

@@ -66,6 +66,14 @@ const residencyOptions = [
   { value: "other", labelEn: "Others – I am unsure", labelDe: "Andere – Ich bin unsicher" },
 ];
 
+const buildDescription = (d: FormData): string => {
+  if (d.supportType === "private") return [d.situation, d.fundingPurpose].filter(Boolean).join(" | ");
+  if (d.supportType === "institution") return [d.institutionType, d.institutionPurpose].filter(Boolean).join(" | ");
+  if (d.supportType === "project") return [d.projectInstitutionType, d.projectDescription, d.projectDuration].filter(Boolean).join(" | ");
+  if (d.supportType === "education") return [d.enrolledInSwissUni === "yes" ? d.universityName : "", "education funding"].filter(Boolean).join(" | ");
+  return "";
+};
+
 export default function FindFunding() {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -78,6 +86,7 @@ export default function FindFunding() {
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
   const [otpValue, setOtpValue] = useState("");
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const update = (fields: Partial<FormData>) => setData((d) => ({ ...d, ...fields }));
 
@@ -118,12 +127,45 @@ export default function FindFunding() {
   const currentStepName = steps[step - 1] || "support-type";
   const progress = (step / totalSteps) * 100;
 
-  const next = () => {
-    if (step < totalSteps) setStep(step + 1);
-    else {
-      localStorage.setItem("fn-user-data", JSON.stringify({ ...data, sensitiveConsent }));
-      navigate("/results", { state: { ...data, sensitiveConsent } });
+  const next = async () => {
+    if (currentStepName === "zip-code") {
+      await fetch("/api/apply/page1/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          support_type: data.supportType,
+          residency_status: data.residencyStatus,
+          zip_code: data.zipCode,
+        }),
+      });
     }
+
+    const detailSteps = ["private-details", "institution-details", "project-details", "education-details"];
+    if (detailSteps.includes(currentStepName)) {
+      await fetch("/api/apply/page2/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: buildDescription(data) }),
+      });
+    }
+
+    if (currentStepName === "review") {
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/apply/submit/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const result = await res.json();
+        localStorage.setItem("fn-user-data", JSON.stringify({ ...data, sensitiveConsent }));
+        navigate("/results", { state: { ...data, sensitiveConsent, matches: result.matches } });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (step < totalSteps) setStep(step + 1);
   };
 
   const showSkip = currentStepName === "personal-info";
@@ -468,9 +510,9 @@ export default function FindFunding() {
                 <SkipForward className="h-4 w-4" /> {t("Skip", "Überspringen")}
               </Button>
             )}
-            <Button onClick={next} disabled={!canAdvance()}>
+            <Button onClick={next} disabled={!canAdvance() || isLoading}>
               {currentStepName === "review"
-                ? t("Find Funding", "Förderung finden")
+                ? isLoading ? t("Searching...", "Suche läuft...") : t("Find Funding", "Förderung finden")
                 : t("Next", "Weiter")}
               {currentStepName !== "review" && <ArrowRight className="h-4 w-4" />}
             </Button>
